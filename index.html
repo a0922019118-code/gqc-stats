@@ -311,7 +311,7 @@ details.collapse .content {
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAtw6bSkMvfuv7aGjmluKdvCXkX3V1IE_c",
@@ -329,7 +329,9 @@ const fs = getFirestore(app);
 // 把 Firebase API 包成跟原本 Claude db capability 相容的介面
 window._fb = {
   auth, fs,
-  signIn: () => signInAnonymously(auth),
+  signInGoogle: () => signInWithPopup(auth, new GoogleAuthProvider()),
+  signOut: () => signOut(auth),
+  onAuthChange: (cb) => onAuthStateChanged(auth, cb),
   collection(name) {
     return {
       doc: (id) => ({
@@ -350,16 +352,21 @@ window.dispatchEvent(new Event("fb-ready"));
 <script>
 // ============ 常數 ============
 const STAFF = [
-  { name: "吳子朋", dept: "GQC", role: "協理", access: "all" },
-  { name: "黎家彤", dept: "GQM", role: "副理",  access: "all" },
-  { name: "梁文軒", dept: "GQM", role: "同仁",  access: "all" },
-  { name: "劉怡廷", dept: "GQM", role: "同仁",  access: "all" },
-  { name: "葉昱冠", dept: "QRE", role: "同仁",  access: "all" },
-  { name: "林辰瑄", dept: "QRE", role: "同仁",  access: "all" },
-  { name: "蕭泳嘉", dept: "QRE", role: "同仁",  access: "all" },
-  { name: "蔡宜助", dept: "QRE", role: "同仁",  access: "all" },
-  { name: "陳碧珠", dept: "兼任", role: "助理", access: "leave-only" },
+  { name: "吳子朋", email: "second.wu@jarlly.com",    dept: "GQC", role: "協理", access: "all" },
+  { name: "黎家彤", email: "betty@jarlly.com",        dept: "GQM", role: "副理",  access: "all" },
+  { name: "梁文軒", email: "louis.leung@jarlly.com",  dept: "GQM", role: "同仁",  access: "all" },
+  { name: "劉怡廷", email: "rita.liu@jarlly.com",     dept: "GQM", role: "同仁",  access: "all" },
+  { name: "葉昱冠", email: "duncan.yeh@jarlly.com",   dept: "QRE", role: "同仁",  access: "all" },
+  { name: "林辰瑄", email: "chenhsuan.lin@jarlly.com",dept: "QRE", role: "同仁",  access: "all" },
+  { name: "蕭泳嘉", email: "rita.hsiao@jarlly.com",   dept: "QRE", role: "同仁",  access: "all" },
+  { name: "蔡宜助", email: "alex.tsai@jarlly.com",    dept: "QRE", role: "同仁",  access: "all" },
+  { name: "陳碧珠", email: "ivy@jarlly.com",          dept: "兼任", role: "助理", access: "leave-only" },
 ];
+function staffByEmail(email) {
+  if (!email) return null;
+  const e = email.trim().toLowerCase();
+  return STAFF.find(s => s.email.toLowerCase() === e);
+}
 
 const EXPENSE_CATEGORIES = {
   GQM: ["管—運費"],
@@ -464,18 +471,36 @@ function toast(msg) {
 function confirmDel() { return confirm("確定要刪除這筆嗎？"); }
 
 // ============ DB ============
+let _subscribed = false;
 async function initDb() {
-  // 等 Firebase module 載入好
   if (!window._fb) {
     await new Promise(res => window.addEventListener("fb-ready", res, { once: true }));
   }
-  try {
-    await window._fb.signIn();
-  } catch (e) {
-    toast("連線失敗：" + (e.message || ""));
-    return;
-  }
   state.db = window._fb;
+  // 監聽 Google 登入狀態
+  window._fb.onAuthChange((user) => {
+    if (!user) {
+      state.user = null;
+      state.unauthorizedEmail = null;
+      render();
+      return;
+    }
+    const matched = staffByEmail(user.email);
+    if (!matched) {
+      state.user = null;
+      state.unauthorizedEmail = user.email;
+      render();
+      return;
+    }
+    state.user = matched;
+    state.unauthorizedEmail = null;
+    subscribeCollections();
+    render();
+  });
+}
+function subscribeCollections() {
+  if (_subscribed) return;
+  _subscribed = true;
   const collections = ["leaves", "overtime", "outings", "expenses", "tasks"];
   for (const col of collections) {
     try {
@@ -496,7 +521,6 @@ async function initDb() {
       state.loaded[col] = true;
     }
   }
-  // 10 秒後強制視為已載入，避免 onSnapshot 不觸發時畫面卡住
   setTimeout(() => {
     let changed = false;
     for (const c of collections) {
@@ -548,42 +572,45 @@ function download(name, content, mime = "text/csv;charset=utf-8") {
   toast("已下載 " + name);
 }
 
-// ============ 使用者識別 ============
-function loadUser() {
+// ============ 使用者識別 (Google 登入) ============
+async function signInGoogle() {
   try {
-    const name = localStorage.getItem("gqm-stats-user");
-    if (name) {
-      const u = staffByName(name);
-      if (u) state.user = u;
-    }
+    await window._fb.signInGoogle();
+  } catch (e) {
+    toast("登入失敗：" + (e.message || e.code || ""));
+  }
+}
+async function signOutUser() {
+  try {
+    await window._fb.signOut();
   } catch (e) {}
-}
-function setUser(name) {
-  state.user = staffByName(name);
-  try { localStorage.setItem("gqm-stats-user", name); } catch (e) {}
-  render();
-}
-function clearUser() {
-  state.user = null;
-  try { localStorage.removeItem("gqm-stats-user"); } catch (e) {}
-  render();
 }
 function renderIdentityPicker() {
   const app = $("#app");
   app.innerHTML = "";
-  const box = el("div", { class: "identity-box" }, [
-    el("h2", {}, "品質中心 日常統計"),
-    el("p", {}, "請選擇你的身分（下次打開會自動帶入）："),
-    el("div", { class: "identity-grid" },
-      STAFF.map(s => el("button", {
-        class: "identity-btn",
-        onclick: () => setUser(s.name),
-      }, [
-        el("div", {}, s.name),
-        el("div", { class: "dept" }, `${s.dept}・${s.role}`),
-      ]))
-    ),
-  ]);
+  const content = [];
+  content.push(el("h2", {}, "品質中心 日常統計"));
+
+  if (state.unauthorizedEmail) {
+    content.push(el("p", { style: "color:var(--danger);" },
+      `你的帳號 ${state.unauthorizedEmail} 不在名單內。`));
+    content.push(el("p", { style: "font-size:12px;color:var(--text-2);" },
+      "請用公司 email（@jarlly.com）登入，或聯絡 Betty 把你加入名單。"));
+    content.push(el("div", { style: "display:flex;gap:8px;margin-top:12px;" }, [
+      el("button", { class: "btn", onclick: signOutUser }, "登出，重新選擇帳號"),
+    ]));
+  } else {
+    content.push(el("p", {}, "請用你的公司 Google 帳號（@jarlly.com）登入："));
+    content.push(el("button", {
+      class: "btn btn-primary",
+      style: "width:100%;padding:12px;font-size:14px;margin-top:8px;",
+      onclick: signInGoogle,
+    }, "🔐 用 Google 登入"));
+    content.push(el("p", { style: "font-size:11px;color:var(--text-3);margin-top:12px;" },
+      "系統會依你的 Google email 自動辨識身分，不能登記成別人。"));
+  }
+
+  const box = el("div", { class: "identity-box" }, content);
   const overlay = el("div", { class: "identity-overlay" }, box);
   app.appendChild(overlay);
 }
@@ -602,7 +629,7 @@ function render() {
     ]),
     el("div", { class: "user-badge" }, [
       el("span", {}, `${state.user.name}（${state.user.dept}・${state.user.role}）`),
-      el("button", { onclick: clearUser, title: "切換使用者" }, "切換"),
+      el("button", { onclick: signOutUser, title: "登出" }, "登出"),
     ]),
   ]);
   app.appendChild(header);
@@ -1696,10 +1723,8 @@ function option(value, text, selected) {
 
 // ============ 啟動 ============
 (async function () {
-  loadUser();
-  render();
-  await initDb();
-  render();
+  render();         // 先畫出登入畫面
+  await initDb();   // 連 Firebase，監聽登入狀態；登入後會自動 render
 })();
 </script>
 </body>
