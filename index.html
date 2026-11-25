@@ -1,0 +1,1706 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>品質中心 日常統計</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --surface-2: #f3f4f6;
+  --border: #e5e7eb;
+  --text: #111827;
+  --text-2: #4b5563;
+  --text-3: #9ca3af;
+  --primary: #0f766e;
+  --primary-soft: #ccfbf1;
+  --accent: #0ea5e9;
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+  --warn: #d97706;
+  --warn-soft: #fef3c7;
+  --ok: #16a34a;
+  --ok-soft: #dcfce7;
+  --gqm: #6366f1;
+  --qre: #ec4899;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b1220;
+    --surface: #111827;
+    --surface-2: #1f2937;
+    --border: #374151;
+    --text: #f3f4f6;
+    --text-2: #d1d5db;
+    --text-3: #9ca3af;
+    --primary: #2dd4bf;
+    --primary-soft: #134e4a;
+    --accent: #38bdf8;
+    --danger: #f87171;
+    --danger-soft: #450a0a;
+    --warn: #fbbf24;
+    --warn-soft: #451a03;
+    --ok: #4ade80;
+    --ok-soft: #052e16;
+    --gqm: #818cf8;
+    --qre: #f472b6;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.4);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b1220;
+  --surface: #111827;
+  --surface-2: #1f2937;
+  --border: #374151;
+  --text: #f3f4f6;
+  --text-2: #d1d5db;
+  --text-3: #9ca3af;
+  --primary: #2dd4bf;
+  --primary-soft: #134e4a;
+  --accent: #38bdf8;
+  --danger: #f87171;
+  --danger-soft: #450a0a;
+  --warn: #fbbf24;
+  --warn-soft: #451a03;
+  --ok: #4ade80;
+  --ok-soft: #052e16;
+  --gqm: #818cf8;
+  --qre: #f472b6;
+  --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.4);
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+.app { max-width: 1200px; margin: 0 auto; padding: 16px; }
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px; gap: 12px; flex-wrap: wrap;
+}
+.title {
+  font-size: 20px; font-weight: 700; color: var(--text);
+  display: flex; align-items: center; gap: 10px;
+}
+.title .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--primary); }
+.user-badge {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); font-size: 13px;
+}
+.user-badge button {
+  background: none; border: none; color: var(--text-3);
+  cursor: pointer; font-size: 12px; padding: 0; margin-left: 4px;
+}
+.user-badge button:hover { color: var(--primary); }
+
+.tabs {
+  display: flex; gap: 2px; background: var(--surface-2);
+  padding: 4px; border-radius: var(--radius); margin-bottom: 16px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+}
+.tab {
+  flex: 1; min-width: 70px; padding: 8px 12px; border: none; background: transparent;
+  color: var(--text-2); border-radius: var(--radius-sm); cursor: pointer;
+  font-size: 13px; font-weight: 500; white-space: nowrap;
+  transition: all 0.15s;
+}
+.tab:hover { color: var(--text); }
+.tab.active { background: var(--surface); color: var(--primary); box-shadow: var(--shadow); font-weight: 600; }
+
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow);
+  margin-bottom: 12px;
+}
+.card h3 {
+  margin: 0 0 12px; font-size: 14px; font-weight: 600; color: var(--text);
+  display: flex; align-items: center; gap: 8px;
+}
+.card h3 .count {
+  background: var(--surface-2); color: var(--text-2);
+  padding: 1px 8px; border-radius: 10px; font-size: 12px; font-weight: 500;
+}
+
+.grid { display: grid; gap: 12px; }
+.grid-2 { grid-template-columns: 1fr 1fr; }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 720px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+}
+
+.stat-card { padding: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.stat-label { font-size: 12px; color: var(--text-3); margin-bottom: 4px; }
+.stat-value { font-size: 22px; font-weight: 700; color: var(--text); }
+.stat-sub { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+
+.alert-adhoc {
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.alert-adhoc .alert-icon { font-size: 18px; }
+.alert-adhoc .alert-title { font-weight: 700; color: var(--danger); margin-bottom: 4px; font-size: 13px; }
+.alert-adhoc .alert-body { color: var(--text); font-size: 13px; }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500;
+  background: var(--surface-2); color: var(--text-2);
+}
+.chip-gqm { background: color-mix(in srgb, var(--gqm) 15%, transparent); color: var(--gqm); }
+.chip-qre { background: color-mix(in srgb, var(--qre) 15%, transparent); color: var(--qre); }
+.chip-planned { background: var(--surface-2); color: var(--text-2); }
+.chip-adhoc { background: var(--danger-soft); color: var(--danger); font-weight: 600; }
+.chip-pending { background: var(--surface-2); color: var(--text-2); }
+.chip-inprogress { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); }
+.chip-completed { background: var(--ok-soft); color: var(--ok); }
+.chip-onhold { background: var(--warn-soft); color: var(--warn); }
+.chip-overdue { background: var(--danger-soft); color: var(--danger); font-weight: 600; }
+
+.form { display: grid; gap: 10px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 12px; color: var(--text-2); font-weight: 500; }
+.field input, .field select, .field textarea {
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--text); font-size: 13px;
+  font-family: inherit;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  outline: none; border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+.field textarea { resize: vertical; min-height: 60px; }
+
+.btn {
+  padding: 8px 14px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text);
+  border-radius: var(--radius-sm); cursor: pointer; font-size: 13px;
+  font-weight: 500; font-family: inherit;
+}
+.btn:hover { background: var(--surface-2); }
+.btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+.btn-primary:hover { opacity: 0.9; background: var(--primary); }
+.btn-danger { color: var(--danger); border-color: var(--danger); background: transparent; }
+.btn-danger:hover { background: var(--danger-soft); }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.list { display: flex; flex-direction: column; gap: 8px; }
+.list-item {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 10px; padding: 10px 12px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+}
+.list-item.today { border-left: 3px solid var(--primary); }
+.list-item.adhoc-today { border-left: 3px solid var(--danger); background: color-mix(in srgb, var(--danger-soft) 40%, var(--surface)); }
+.list-item .main { flex: 1; min-width: 0; }
+.list-item .title-line { font-weight: 600; color: var(--text); font-size: 13px; margin-bottom: 2px; }
+.list-item .meta { font-size: 12px; color: var(--text-2); }
+.list-item .meta-chips { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.list-item .actions { display: flex; gap: 4px; }
+
+.filter-bar {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;
+  padding: 8px; background: var(--surface-2); border-radius: var(--radius-sm);
+}
+.filter-bar select, .filter-bar input {
+  padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px;
+  background: var(--surface); color: var(--text); font-size: 12px; font-family: inherit;
+}
+
+.empty {
+  text-align: center; padding: 24px; color: var(--text-3); font-size: 13px;
+}
+
+.identity-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; padding: 16px;
+}
+.identity-box {
+  background: var(--surface); border-radius: var(--radius);
+  padding: 24px; max-width: 420px; width: 100%;
+  box-shadow: 0 20px 25px rgba(0,0,0,0.15);
+}
+.identity-box h2 { margin: 0 0 8px; font-size: 18px; color: var(--text); }
+.identity-box p { margin: 0 0 16px; font-size: 13px; color: var(--text-2); }
+.identity-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+.identity-btn {
+  padding: 10px 8px; border: 1px solid var(--border); background: var(--surface);
+  border-radius: var(--radius-sm); cursor: pointer; text-align: center;
+  color: var(--text); font-size: 13px; font-family: inherit;
+  transition: all 0.15s;
+}
+.identity-btn:hover { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
+.identity-btn .dept { font-size: 10px; color: var(--text-3); margin-top: 2px; }
+.identity-btn:hover .dept { color: var(--primary); }
+
+.summary-row {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 10px; margin-bottom: 12px;
+}
+@media (max-width: 720px) { .summary-row { grid-template-columns: repeat(2, 1fr); } }
+
+.month-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px; padding: 6px 10px; background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+.month-nav button {
+  background: none; border: none; color: var(--text-2); cursor: pointer;
+  font-size: 16px; padding: 2px 10px; border-radius: 4px;
+}
+.month-nav button:hover { background: var(--surface); color: var(--text); }
+.month-nav .label { font-weight: 600; font-size: 13px; }
+
+.loading { padding: 32px; text-align: center; color: var(--text-3); font-size: 13px; }
+
+.tag-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.tag-btn {
+  padding: 4px 10px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text-2);
+  border-radius: 14px; cursor: pointer; font-size: 12px; font-family: inherit;
+}
+.tag-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+details.collapse { margin-bottom: 12px; }
+details.collapse summary {
+  cursor: pointer; padding: 8px 12px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-weight: 500; font-size: 13px; user-select: none;
+}
+details.collapse[open] summary { border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+details.collapse .content {
+  padding: 12px; background: var(--surface);
+  border: 1px solid var(--border); border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--text); color: var(--bg); padding: 10px 16px;
+  border-radius: var(--radius); font-size: 13px; z-index: 200;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2); opacity: 0;
+  transition: opacity 0.2s; pointer-events: none;
+}
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="app" class="app">
+  <div class="loading">載入中...</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAtw6bSkMvfuv7aGjmluKdvCXkX3V1IE_c",
+  authDomain: "gqc-stats.firebaseapp.com",
+  projectId: "gqc-stats",
+  storageBucket: "gqc-stats.firebasestorage.app",
+  messagingSenderId: "500991163715",
+  appId: "1:500991163715:web:082e5a717213f0aa3d43f6"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const fs = getFirestore(app);
+
+// 把 Firebase API 包成跟原本 Claude db capability 相容的介面
+window._fb = {
+  auth, fs,
+  signIn: () => signInAnonymously(auth),
+  collection(name) {
+    return {
+      doc: (id) => ({
+        set: (data) => setDoc(doc(fs, name, id), data),
+        delete: () => deleteDoc(doc(fs, name, id)),
+      }),
+      onSnapshot: (cb, errCb) => onSnapshot(
+        collection(fs, name),
+        (snap) => cb({ docs: snap.docs.map(d => ({ id: d.id, data: () => d.data() })) }),
+        errCb,
+      ),
+    };
+  },
+};
+window.dispatchEvent(new Event("fb-ready"));
+</script>
+
+<script>
+// ============ 常數 ============
+const STAFF = [
+  { name: "吳子朋", dept: "GQC", role: "協理", access: "all" },
+  { name: "黎家彤", dept: "GQM", role: "副理",  access: "all" },
+  { name: "梁文軒", dept: "GQM", role: "同仁",  access: "all" },
+  { name: "劉怡廷", dept: "GQM", role: "同仁",  access: "all" },
+  { name: "葉昱冠", dept: "QRE", role: "同仁",  access: "all" },
+  { name: "林辰瑄", dept: "QRE", role: "同仁",  access: "all" },
+  { name: "蕭泳嘉", dept: "QRE", role: "同仁",  access: "all" },
+  { name: "蔡宜助", dept: "QRE", role: "同仁",  access: "all" },
+  { name: "陳碧珠", dept: "兼任", role: "助理", access: "leave-only" },
+];
+
+const EXPENSE_CATEGORIES = {
+  GQM: ["管—運費"],
+  QRE: ["管—修繕費", "管—其他費用"],
+};
+
+const LEAVE_TYPES = ["特休", "事假", "病假", "喪假", "婚假", "產假", "其他"];
+const PERIODS = ["全天", "上午半天", "下午半天", "指定時段"];
+const TASK_STATUS = [
+  { k: "pending",    label: "待辦",   cls: "chip-pending" },
+  { k: "inprogress", label: "進行中", cls: "chip-inprogress" },
+  { k: "onhold",     label: "擱置",   cls: "chip-onhold" },
+  { k: "completed",  label: "完成",   cls: "chip-completed" },
+];
+
+// ============ 狀態 ============
+let state = {
+  user: null,            // 當前使用者 (STAFF 中的一項)
+  tab: "dashboard",
+  db: null,
+  data: {
+    leaves: [], overtime: [], outings: [], expenses: [], tasks: [],
+  },
+  loaded: { leaves: false, overtime: false, outings: false, expenses: false, tasks: false },
+  statsMonth: ymStr(new Date()),
+};
+
+// ============ 工具 ============
+function $(sel) { return document.querySelector(sel); }
+function el(tag, attrs = {}, children = []) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") e.className = v;
+    else if (k === "style") e.setAttribute("style", v);
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (k === "html") e.innerHTML = v;
+    else e.setAttribute(k, v);
+  }
+  const arr = Array.isArray(children) ? children : [children];
+  arr.forEach(c => {
+    if (c == null || c === false) return;
+    if (typeof c === "string" || typeof c === "number") e.appendChild(document.createTextNode(String(c)));
+    else e.appendChild(c);
+  });
+  return e;
+}
+function today() {
+  const d = new Date();
+  return d.toISOString().slice(0, 10);
+}
+function tomorrow() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+function ymStr(d) {
+  return d.toISOString().slice(0, 7);
+}
+function inRange(d, start, end) {
+  return d >= start && d <= (end || start);
+}
+function isDateInMonth(dateStr, ym) {
+  return dateStr && dateStr.startsWith(ym);
+}
+function fmtDate(s) {
+  if (!s) return "";
+  const parts = s.split("-");
+  return `${parts[1]}/${parts[2]}`;
+}
+function fmtDateRange(a, b) {
+  if (!b || a === b) return fmtDate(a);
+  return `${fmtDate(a)}-${fmtDate(b)}`;
+}
+function hoursBetween(s, e) {
+  if (!s || !e) return 0;
+  const [sh, sm] = s.split(":").map(Number);
+  const [eh, em] = e.split(":").map(Number);
+  return Math.max(0, (eh * 60 + em - sh * 60 - sm) / 60);
+}
+function newId(prefix) {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+}
+function staffByName(name) {
+  return STAFF.find(s => s.name === name);
+}
+function deptChip(dept) {
+  if (dept === "GQM") return el("span", { class: "chip chip-gqm" }, "GQM");
+  if (dept === "QRE") return el("span", { class: "chip chip-qre" }, "QRE");
+  return el("span", { class: "chip" }, dept || "");
+}
+function toast(msg) {
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.textContent = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.classList.add("show"));
+  setTimeout(() => {
+    t.classList.remove("show");
+    setTimeout(() => t.remove(), 300);
+  }, 2200);
+}
+function confirmDel() { return confirm("確定要刪除這筆嗎？"); }
+
+// ============ DB ============
+async function initDb() {
+  // 等 Firebase module 載入好
+  if (!window._fb) {
+    await new Promise(res => window.addEventListener("fb-ready", res, { once: true }));
+  }
+  try {
+    await window._fb.signIn();
+  } catch (e) {
+    toast("連線失敗：" + (e.message || ""));
+    return;
+  }
+  state.db = window._fb;
+  const collections = ["leaves", "overtime", "outings", "expenses", "tasks"];
+  for (const col of collections) {
+    try {
+      state.db.collection(col).onSnapshot(
+        (snap) => {
+          state.data[col] = snap.docs.map(d => ({ id: d.id, ...(d.data() || {}) }));
+          state.loaded[col] = true;
+          render();
+        },
+        (err) => {
+          console.error("db subscribe error", col, err);
+          state.loaded[col] = true;
+          render();
+        }
+      );
+    } catch (e) {
+      console.error("subscribe failed for", col, e);
+      state.loaded[col] = true;
+    }
+  }
+  // 10 秒後強制視為已載入，避免 onSnapshot 不觸發時畫面卡住
+  setTimeout(() => {
+    let changed = false;
+    for (const c of collections) {
+      if (!state.loaded[c]) { state.loaded[c] = true; changed = true; }
+    }
+    if (changed) render();
+  }, 10000);
+}
+async function saveDoc(col, data) {
+  if (!state.db) return;
+  const id = data.id || newId(col);
+  const payload = { ...data, id };
+  if (!payload.createdAt) payload.createdAt = new Date().toISOString();
+  if (!payload.createdBy) payload.createdBy = state.user.name;
+  try {
+    await state.db.collection(col).doc(id).set(payload);
+    toast(data.id ? "已更新" : "已登記");
+  } catch (e) {
+    toast("儲存失敗：" + (e.message || ""));
+  }
+}
+async function deleteDoc(col, id) {
+  if (!state.db) return;
+  try {
+    await state.db.collection(col).doc(id).delete();
+    toast("已刪除");
+  } catch (e) {
+    toast("刪除失敗：" + (e.message || ""));
+  }
+}
+
+// ============ 匯出 ============
+function toCSV(rows, columns) {
+  const header = columns.map(c => c.label).join(",");
+  const body = rows.map(r => columns.map(c => {
+    const v = c.get ? c.get(r) : r[c.key];
+    const s = (v == null ? "" : String(v)).replace(/"/g, '""');
+    return /[,"\n]/.test(s) ? `"${s}"` : s;
+  }).join(",")).join("\n");
+  return "﻿" + header + "\n" + body;
+}
+function download(name, content, mime = "text/csv;charset=utf-8") {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  toast("已下載 " + name);
+}
+
+// ============ 使用者識別 ============
+function loadUser() {
+  try {
+    const name = localStorage.getItem("gqm-stats-user");
+    if (name) {
+      const u = staffByName(name);
+      if (u) state.user = u;
+    }
+  } catch (e) {}
+}
+function setUser(name) {
+  state.user = staffByName(name);
+  try { localStorage.setItem("gqm-stats-user", name); } catch (e) {}
+  render();
+}
+function clearUser() {
+  state.user = null;
+  try { localStorage.removeItem("gqm-stats-user"); } catch (e) {}
+  render();
+}
+function renderIdentityPicker() {
+  const app = $("#app");
+  app.innerHTML = "";
+  const box = el("div", { class: "identity-box" }, [
+    el("h2", {}, "品質中心 日常統計"),
+    el("p", {}, "請選擇你的身分（下次打開會自動帶入）："),
+    el("div", { class: "identity-grid" },
+      STAFF.map(s => el("button", {
+        class: "identity-btn",
+        onclick: () => setUser(s.name),
+      }, [
+        el("div", {}, s.name),
+        el("div", { class: "dept" }, `${s.dept}・${s.role}`),
+      ]))
+    ),
+  ]);
+  const overlay = el("div", { class: "identity-overlay" }, box);
+  app.appendChild(overlay);
+}
+
+// ============ 主渲染 ============
+function render() {
+  if (!state.user) { renderIdentityPicker(); return; }
+  const app = $("#app");
+  app.innerHTML = "";
+
+  // Header
+  const header = el("div", { class: "header" }, [
+    el("div", { class: "title" }, [
+      el("span", { class: "dot" }),
+      "品質中心 日常統計",
+    ]),
+    el("div", { class: "user-badge" }, [
+      el("span", {}, `${state.user.name}（${state.user.dept}・${state.user.role}）`),
+      el("button", { onclick: clearUser, title: "切換使用者" }, "切換"),
+    ]),
+  ]);
+  app.appendChild(header);
+
+  // Tabs
+  const tabs = tabsForUser();
+  const tabBar = el("div", { class: "tabs" },
+    tabs.map(t => el("button", {
+      class: "tab" + (state.tab === t.k ? " active" : ""),
+      onclick: () => { state.tab = t.k; render(); },
+    }, t.label))
+  );
+  app.appendChild(tabBar);
+
+  // Content
+  const content = el("div", { class: "content" });
+  app.appendChild(content);
+
+  switch (state.tab) {
+    case "dashboard": renderDashboard(content); break;
+    case "leaves":    renderLeaves(content);    break;
+    case "overtime":  renderOvertime(content);  break;
+    case "outings":   renderOutings(content);   break;
+    case "expenses":  renderExpenses(content);  break;
+    case "tasks":     renderTasks(content);     break;
+  }
+}
+function tabsForUser() {
+  if (state.user.access === "leave-only") {
+    return [
+      { k: "dashboard", label: "看板", needs: ["leaves"] },
+      { k: "leaves",    label: "請假", needs: ["leaves"] },
+    ];
+  }
+  return [
+    { k: "dashboard", label: "看板",     needs: ["leaves","overtime","outings","expenses","tasks"] },
+    { k: "leaves",    label: "請假",     needs: ["leaves"] },
+    { k: "overtime",  label: "加班",     needs: ["overtime"] },
+    { k: "outings",   label: "外出",     needs: ["outings"] },
+    { k: "expenses",  label: "費用",     needs: ["expenses"] },
+    { k: "tasks",     label: "事項追蹤", needs: ["tasks"] },
+  ];
+}
+function allEmpty() {
+  return Object.values(state.data).every(a => a.length === 0);
+}
+function canEdit() { return state.user.access !== "all-readonly"; }
+function canDeleteRecord(r) {
+  if (!canEdit()) return false;
+  return r.createdBy === state.user.name;
+}
+// 事項的「改」只允許負責人或交辦人
+function canEditTask(r) {
+  if (!canEdit()) return false;
+  return r.person === state.user.name || r.createdBy === state.user.name;
+}
+
+// ============ 看板 ============
+function renderDashboard(root) {
+  const tStr = today();
+  const mStr = tomorrow();
+  const thisMonth = ymStr(new Date());
+
+  // 今日臨時請假 (警示)
+  const adhocToday = state.data.leaves.filter(r =>
+    r.type === "adhoc" && inRange(tStr, r.startDate, r.endDate)
+  );
+  if (adhocToday.length) {
+    adhocToday.forEach(r => {
+      root.appendChild(el("div", { class: "alert-adhoc" }, [
+        el("div", { class: "alert-icon" }, "🚨"),
+        el("div", {}, [
+          el("div", { class: "alert-title" }, `今日臨時請假：${r.person}（${r.department}）`),
+          el("div", { class: "alert-body" }, `${r.leaveType}・${r.period}${r.reason ? "・" + r.reason : ""}`),
+        ]),
+      ]));
+    });
+  }
+
+  // Summary 數字
+  const todayLeavePeople = new Set(state.data.leaves.filter(r =>
+    inRange(tStr, r.startDate, r.endDate)
+  ).map(r => r.person)).size;
+  const tomorrowLeavePeople = new Set(state.data.leaves.filter(r =>
+    inRange(mStr, r.startDate, r.endDate)
+  ).map(r => r.person)).size;
+  const todayOutings = state.data.outings.filter(r => r.date === tStr).length;
+  const monthOvertimeHours = state.data.overtime
+    .filter(r => isDateInMonth(r.date, thisMonth))
+    .reduce((s, r) => s + (Number(r.hours) || 0), 0);
+  const overdueTasks = state.data.tasks.filter(r =>
+    r.status !== "completed" && r.dueDate && r.dueDate < tStr
+  ).length;
+  const monthExpensesGQM = state.data.expenses
+    .filter(r => r.department === "GQM" && isDateInMonth(r.date, thisMonth))
+    .reduce((s, r) => s + (Number(r.amount) || 0), 0);
+  const monthExpensesQRE = state.data.expenses
+    .filter(r => r.department === "QRE" && isDateInMonth(r.date, thisMonth))
+    .reduce((s, r) => s + (Number(r.amount) || 0), 0);
+  const pendingTasks = state.data.tasks.filter(r =>
+    r.status !== "completed"
+  ).length;
+
+  const summary = el("div", { class: "summary-row" }, [
+    stat("今日請假", todayLeavePeople + " 人", "明日 " + tomorrowLeavePeople + " 人"),
+    stat("今日外出", todayOutings + " 筆"),
+    stat(`${thisMonth.slice(5)} 月 加班`, monthOvertimeHours.toFixed(1) + " 小時"),
+    stat("未結事項", pendingTasks + " 件", overdueTasks ? `逾期 ${overdueTasks}` : ""),
+  ]);
+  root.appendChild(summary);
+
+  // 兩欄：今日 / 明日
+  const twoCol = el("div", { class: "grid grid-2" });
+  twoCol.appendChild(dayCard("今日", tStr));
+  twoCol.appendChild(dayCard("明日", mStr));
+  root.appendChild(twoCol);
+
+  if (state.user.access === "leave-only") return;
+
+  // 本月費用概況
+  const expenseCard = el("div", { class: "card" }, [
+    el("h3", {}, [
+      "本月費用執行",
+      el("span", { class: "count" }, thisMonth),
+    ]),
+    el("div", { class: "grid grid-2" }, [
+      stat("GQM・管—運費", "$" + monthExpensesGQM.toLocaleString()),
+      stat("QRE・管—修繕+其他", "$" + monthExpensesQRE.toLocaleString()),
+    ]),
+  ]);
+  root.appendChild(expenseCard);
+
+  // 本月加班排行
+  const otByPerson = {};
+  state.data.overtime.filter(r => isDateInMonth(r.date, thisMonth)).forEach(r => {
+    otByPerson[r.person] = (otByPerson[r.person] || 0) + (Number(r.hours) || 0);
+  });
+  const otRank = Object.entries(otByPerson).sort((a, b) => b[1] - a[1]);
+
+  // 待追蹤清單：協理/副理看全團隊，其他人只看自己交辦的
+  const isManager = state.user.role === "副理" || state.user.role === "協理";
+  const myFollowups = state.data.tasks
+    .filter(r => r.status !== "completed"
+      && (isManager || r.createdBy === state.user.name)
+      && taskReminder(r))
+    .sort((a, b) => {
+      const ra = taskReminder(a).kind, rb = taskReminder(b).kind;
+      const order = { "overdue": 0, "due-soon": 1, "follow-up": 2 };
+      return (order[ra] ?? 9) - (order[rb] ?? 9);
+    });
+  // 我負責的（未完成、且未在上面列表）
+  const myOwn = state.data.tasks
+    .filter(r => r.status !== "completed" && r.person === state.user.name)
+    .sort((a, b) => (a.dueDate || "9999") > (b.dueDate || "9999") ? 1 : -1)
+    .slice(0, 8);
+
+  const col2 = el("div", { class: "grid grid-2" });
+  const otCard = el("div", { class: "card" }, [
+    el("h3", {}, [`本月加班時數`, el("span", { class: "count" }, thisMonth)]),
+    otRank.length
+      ? el("div", { class: "list" }, otRank.map(([p, h]) => {
+          const staff = staffByName(p);
+          return el("div", { class: "list-item" }, [
+            el("div", { class: "main" }, [
+              el("div", { class: "title-line" }, [p, " ", staff ? deptChip(staff.dept) : ""]),
+            ]),
+            el("div", {}, [el("strong", {}, h.toFixed(1) + " 小時")]),
+          ]);
+        }))
+      : el("div", { class: "empty" }, "本月尚無加班紀錄"),
+  ]);
+  const followTitle = isManager ? "團隊事項待追蹤" : "我交辦待追蹤";
+  const followCard = el("div", { class: "card" }, [
+    el("h3", {}, [followTitle, el("span", { class: "count" }, myFollowups.length)]),
+    myFollowups.length
+      ? el("div", { class: "list" }, myFollowups.map(taskItemSmall))
+      : el("div", { class: "empty" }, "目前沒有需要追的事項 👍"),
+  ]);
+  col2.appendChild(otCard);
+  col2.appendChild(followCard);
+  root.appendChild(col2);
+
+  if (myOwn.length) {
+    root.appendChild(el("div", { class: "card" }, [
+      el("h3", {}, [`我負責的（未完成）`, el("span", { class: "count" }, myOwn.length)]),
+      el("div", { class: "list" }, myOwn.map(taskItemSmall)),
+    ]));
+  }
+}
+function stat(label, value, sub) {
+  return el("div", { class: "stat-card" }, [
+    el("div", { class: "stat-label" }, label),
+    el("div", { class: "stat-value" }, value),
+    sub ? el("div", { class: "stat-sub" }, sub) : null,
+  ]);
+}
+function dayCard(title, dateStr) {
+  const leaves = state.data.leaves.filter(r => inRange(dateStr, r.startDate, r.endDate));
+  const overtime = state.data.overtime.filter(r => r.date === dateStr);
+  const outings = state.data.outings.filter(r => r.date === dateStr);
+  const hasAny = leaves.length + overtime.length + outings.length > 0;
+
+  const items = [];
+  leaves.forEach(r => {
+    const cls = (r.type === "adhoc" && dateStr === today()) ? "list-item adhoc-today" : "list-item today";
+    const periodTxt = (r.period === "指定時段" && r.startTime) ? r.period + "（" + r.startTime + "-" + r.endTime + "）" : r.period;
+    items.push(el("div", { class: cls }, [
+      el("div", { class: "main" }, [
+        el("div", { class: "title-line" }, [
+          "📅 ", r.person, "　", r.leaveType, "・", periodTxt,
+        ]),
+        r.reason ? el("div", { class: "meta" }, r.reason) : null,
+        el("div", { class: "meta-chips" }, [
+          deptChip(r.department),
+          el("span", { class: "chip " + (r.type === "adhoc" ? "chip-adhoc" : "chip-planned") },
+            r.type === "adhoc" ? "臨時" : "已規劃"),
+        ]),
+      ]),
+    ]));
+  });
+  if (state.user.access !== "leave-only") {
+    overtime.forEach(r => {
+      const metaTxt = [`${r.startTime}-${r.endTime}`, r.reason].filter(Boolean).join("・");
+      items.push(el("div", { class: "list-item today" }, [
+        el("div", { class: "main" }, [
+          el("div", { class: "title-line" }, [
+            "⏱ ", r.person, "　加班 ", r.hours, " 小時",
+          ]),
+          el("div", { class: "meta" }, metaTxt),
+          el("div", { class: "meta-chips" }, [deptChip(r.department)]),
+        ]),
+      ]));
+    });
+    outings.forEach(r => {
+      const timeTxt = r.startTime ? `${r.startTime}${r.endTime ? "-" + r.endTime : ""}` : "";
+      const metaTxt = [timeTxt, r.reason].filter(Boolean).join("・");
+      items.push(el("div", { class: "list-item today" }, [
+        el("div", { class: "main" }, [
+          el("div", { class: "title-line" }, [
+            "🚶 ", r.person, "　外出", r.location ? "・" + r.location : "",
+          ]),
+          metaTxt ? el("div", { class: "meta" }, metaTxt) : null,
+          el("div", { class: "meta-chips" }, [deptChip(r.department)]),
+        ]),
+      ]));
+    });
+  }
+
+  return el("div", { class: "card" }, [
+    el("h3", {}, [title + "（" + fmtDate(dateStr) + "）",
+      el("span", { class: "count" }, items.length + " 筆")]),
+    hasAny ? el("div", { class: "list" }, items) : el("div", { class: "empty" }, "沒有異動"),
+  ]);
+}
+function taskItemSmall(r) {
+  const status = TASK_STATUS.find(s => s.k === r.status) || TASK_STATUS[0];
+  const reminder = taskReminder(r);
+  const touched = r.lastTouched || r.createdAt;
+  return el("div", { class: "list-item" }, [
+    el("div", { class: "main" }, [
+      el("div", { class: "title-line" }, r.title || "(未命名)"),
+      el("div", { class: "meta" }, [
+        "負責：" + (r.person || ""),
+        r.dueDate ? "・到期 " + fmtDate(r.dueDate) : "・無壓期",
+        touched ? "・更新 " + daysAgo(touched) : "",
+      ].filter(Boolean).join("")),
+      el("div", { class: "meta-chips" }, [
+        deptChip(r.department),
+        el("span", { class: "chip " + status.cls }, status.label),
+        reminder ? el("span", { class: "chip " + reminder.cls }, reminder.label) : null,
+      ]),
+    ]),
+    canEdit() && r.status !== "completed" ? el("div", { class: "actions" }, [
+      el("button", { class: "btn btn-sm", onclick: () => bumpTask(r), title: "追進度" }, "追"),
+    ]) : null,
+  ]);
+}
+
+// ============ 月份選擇 ============
+function monthNav(onChange) {
+  const bar = el("div", { class: "month-nav" }, [
+    el("button", {
+      onclick: () => {
+        const [y, m] = state.statsMonth.split("-").map(Number);
+        const d = new Date(y, m - 2, 1);
+        state.statsMonth = ymStr(d);
+        onChange();
+      }
+    }, "‹"),
+    el("div", { class: "label" }, state.statsMonth),
+    el("button", {
+      onclick: () => {
+        const [y, m] = state.statsMonth.split("-").map(Number);
+        const d = new Date(y, m, 1);
+        state.statsMonth = ymStr(d);
+        onChange();
+      }
+    }, "›"),
+  ]);
+  return bar;
+}
+
+// ============ 請假 ============
+function renderLeaves(root) {
+  if (canEdit()) root.appendChild(leaveForm());
+  root.appendChild(leaveSummary());
+  root.appendChild(leaveList());
+}
+function leaveForm(existing) {
+  const f = existing || {
+    type: "planned", leaveType: "特休",
+    startDate: today(), endDate: today(),
+    period: "全天", reason: "",
+    person: state.user.name, department: state.user.dept,
+  };
+  const formEl = el("form", { class: "form", onsubmit: async (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+    if (data.period === "指定時段") {
+      if (!data.startTime || !data.endTime) { toast("請填寫指定時段的開始/結束時間"); return; }
+      if (data.startTime >= data.endTime) { toast("結束時間要在開始時間之後"); return; }
+    }
+    if (data.endDate && data.endDate < data.startDate) { toast("訖日要在起日之後"); return; }
+    if (existing) data.id = existing.id;
+    data.person = data.person || state.user.name;
+    data.department = staffByName(data.person)?.dept || state.user.dept;
+    await saveDoc("leaves", data);
+    e.target.reset();
+    if (existing) { editingLeaveId = null; render(); }
+  } }, [
+    el("div", { class: "form-row" }, [
+      field("類型", el("select", { name: "type", required: "true" }, [
+        option("planned", "已規劃", f.type === "planned"),
+        option("adhoc", "臨時（🚨 會跳警示）", f.type === "adhoc"),
+      ])),
+      field("假別", el("select", { name: "leaveType", required: "true" },
+        LEAVE_TYPES.map(t => option(t, t, f.leaveType === t))
+      )),
+    ]),
+    el("div", { class: "form-row" }, [
+      field("起", el("input", { type: "date", name: "startDate", value: f.startDate, required: "true" })),
+      field("訖", el("input", { type: "date", name: "endDate", value: f.endDate || f.startDate, required: "true" })),
+    ]),
+    el("div", { class: "field" }, [
+      el("label", {}, "時段"),
+      el("select", {
+        name: "period",
+        onchange: (e) => {
+          const box = document.getElementById("leave-period-times");
+          if (box) box.style.display = e.target.value === "指定時段" ? "grid" : "none";
+        }
+      }, PERIODS.map(p => option(p, p, f.period === p))),
+      el("div", {
+        id: "leave-period-times",
+        style: "display:" + (f.period === "指定時段" ? "grid" : "none") + ";grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;"
+      }, [
+        el("div", { class: "field" }, [
+          el("label", {}, "開始"),
+          el("input", { type: "time", name: "startTime", value: f.startTime || "09:00" }),
+        ]),
+        el("div", { class: "field" }, [
+          el("label", {}, "結束"),
+          el("input", { type: "time", name: "endTime", value: f.endTime || "18:00" }),
+        ]),
+      ]),
+    ]),
+    field("事由", el("textarea", { name: "reason", required: "true", placeholder: "例：回診、家事" }, f.reason || "")),
+    el("div", { class: "btn-group" }, [
+      el("button", { type: "submit", class: "btn btn-primary" }, existing ? "更新" : "登記請假"),
+      existing ? el("button", { type: "button", class: "btn", onclick: () => { editingLeaveId = null; render(); } }, "取消") : null,
+    ]),
+  ]);
+  return el("details", { class: "collapse", open: existing ? "" : null }, [
+    el("summary", {}, existing ? "✏️ 編輯請假" : "➕ 新增請假"),
+    el("div", { class: "content" }, formEl),
+  ]);
+}
+
+let editingLeaveId = null;
+let leaveFilter = { month: "", person: "", type: "" };
+
+function leaveSummary() {
+  const month = state.statsMonth;
+  const rows = state.data.leaves.filter(r =>
+    isDateInMonth(r.startDate, month) || isDateInMonth(r.endDate, month)
+  );
+  const byDept = { GQM: 0, QRE: 0 };
+  const byType = { planned: 0, adhoc: 0 };
+  rows.forEach(r => {
+    const days = leaveDaysInMonth(r, month);
+    byDept[r.department] = (byDept[r.department] || 0) + days;
+    byType[r.type || "planned"] = (byType[r.type || "planned"] || 0) + days;
+  });
+  const total = byType.planned + byType.adhoc;
+  const adhocRate = total ? ((byType.adhoc / total) * 100).toFixed(1) : "0";
+
+  return el("div", { class: "card" }, [
+    el("h3", {}, "本月請假統計"),
+    monthNav(() => render()),
+    el("div", { class: "grid grid-4" }, [
+      stat("GQM 人日", byDept.GQM.toFixed(1)),
+      stat("QRE 人日", byDept.QRE.toFixed(1)),
+      stat("臨時請假", byType.adhoc.toFixed(1) + " 人日"),
+      stat("臨時佔比", adhocRate + "%"),
+    ]),
+  ]);
+}
+function leaveDaysInMonth(r, month) {
+  let s = r.startDate, e = r.endDate || r.startDate;
+  if (!s || !s.startsWith(month.slice(0, 4))) {
+    // allow cross-year slim check
+  }
+  const monthStart = month + "-01";
+  const [y, m] = month.split("-").map(Number);
+  const monthEnd = new Date(y, m, 0).toISOString().slice(0, 10);
+  if (e < monthStart || s > monthEnd) return 0;
+  const start = s < monthStart ? monthStart : s;
+  const end = e > monthEnd ? monthEnd : e;
+  let days = (new Date(end) - new Date(start)) / 86400000 + 1;
+  if (r.period && r.period.includes("半天")) days *= 0.5;
+  return Math.max(0, days);
+}
+function leaveList() {
+  const filterOpts = ["GQM", "QRE"];
+  const bar = el("div", { class: "filter-bar" }, [
+    el("select", { onchange: (e) => { leaveFilter.dept = e.target.value; render(); }, value: leaveFilter.dept || "" }, [
+      option("", "全部部門"),
+      ...filterOpts.map(d => option(d, d, leaveFilter.dept === d)),
+    ]),
+    el("select", { onchange: (e) => { leaveFilter.person = e.target.value; render(); }, value: leaveFilter.person || "" }, [
+      option("", "全部人員"),
+      ...STAFF.filter(s => s.access !== "leave-only" && s.access !== "all-readonly")
+        .map(s => option(s.name, s.name, leaveFilter.person === s.name)),
+    ]),
+    el("select", { onchange: (e) => { leaveFilter.type = e.target.value; render(); }, value: leaveFilter.type || "" }, [
+      option("", "全部類型"),
+      option("planned", "已規劃", leaveFilter.type === "planned"),
+      option("adhoc", "臨時", leaveFilter.type === "adhoc"),
+    ]),
+    el("button", { class: "btn btn-sm", onclick: () => exportLeaves() }, "匯出 CSV"),
+  ]);
+
+  const rows = state.data.leaves
+    .filter(r => !leaveFilter.dept || r.department === leaveFilter.dept)
+    .filter(r => !leaveFilter.person || r.person === leaveFilter.person)
+    .filter(r => !leaveFilter.type || r.type === leaveFilter.type)
+    .sort((a, b) => (b.startDate || "") > (a.startDate || "") ? 1 : -1);
+
+  const list = el("div", { class: "list" },
+    rows.length === 0
+      ? [el("div", { class: "empty" }, "沒有紀錄")]
+      : rows.map(r => {
+          if (editingLeaveId === r.id) return leaveForm(r);
+          const isAdhoc = r.type === "adhoc";
+          return el("div", { class: "list-item" }, [
+            el("div", { class: "main" }, [
+              el("div", { class: "title-line" }, [
+                r.person, "　", r.leaveType, "・", r.period,
+                (r.period === "指定時段" && r.startTime) ? "（" + r.startTime + "-" + r.endTime + "）" : "",
+                "　", el("span", { style: "color:var(--text-2);font-weight:400;" }, fmtDateRange(r.startDate, r.endDate)),
+              ]),
+              r.reason ? el("div", { class: "meta" }, r.reason) : null,
+              el("div", { class: "meta-chips" }, [
+                deptChip(r.department),
+                el("span", { class: "chip " + (isAdhoc ? "chip-adhoc" : "chip-planned") },
+                  isAdhoc ? "臨時" : "已規劃"),
+                el("span", { class: "chip", style: "color:var(--text-3)" }, "由 " + (r.createdBy || "?")),
+              ]),
+            ]),
+            canEdit() ? el("div", { class: "actions" }, [
+              el("button", { class: "btn btn-sm", onclick: () => { editingLeaveId = r.id; render(); } }, "改"),
+              canDeleteRecord(r) ? el("button", { class: "btn btn-sm btn-danger", onclick: async () => {
+                if (confirmDel()) await deleteDoc("leaves", r.id);
+              } }, "刪") : null,
+            ]) : null,
+          ]);
+        })
+  );
+
+  return el("div", { class: "card" }, [
+    el("h3", {}, ["請假明細", el("span", { class: "count" }, rows.length)]),
+    bar,
+    list,
+  ]);
+}
+function exportLeaves() {
+  const cols = [
+    { key: "startDate", label: "起日" },
+    { key: "endDate", label: "訖日" },
+    { key: "person", label: "姓名" },
+    { key: "department", label: "部門" },
+    { key: "type", label: "類型", get: r => r.type === "adhoc" ? "臨時" : "已規劃" },
+    { key: "leaveType", label: "假別" },
+    { key: "period", label: "時段" },
+    { key: "reason", label: "事由" },
+    { key: "createdBy", label: "登記人" },
+    { key: "createdAt", label: "登記時間" },
+  ];
+  const rows = state.data.leaves.sort((a, b) => (a.startDate || "") < (b.startDate || "") ? 1 : -1);
+  download(`請假_${today()}.csv`, toCSV(rows, cols));
+}
+
+// ============ 加班 ============
+let editingOvertimeId = null;
+let overtimeFilter = { dept: "", person: "" };
+
+function renderOvertime(root) {
+  if (canEdit()) root.appendChild(overtimeForm());
+  root.appendChild(overtimeSummary());
+  root.appendChild(overtimeList());
+}
+function overtimeForm(existing) {
+  const f = existing || {
+    date: today(), startTime: "18:00", endTime: "20:00", reason: "",
+    person: state.user.name, department: state.user.dept,
+  };
+  const formEl = el("form", { class: "form", onsubmit: async (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+    if (data.startTime >= data.endTime) { toast("結束時間要在開始時間之後"); return; }
+    data.hours = hoursBetween(data.startTime, data.endTime);
+    data.person = data.person || state.user.name;
+    data.department = staffByName(data.person)?.dept || state.user.dept;
+    if (existing) data.id = existing.id;
+    await saveDoc("overtime", data);
+    e.target.reset();
+    if (existing) { editingOvertimeId = null; render(); }
+  } }, [
+    field("日期", el("input", { type: "date", name: "date", value: f.date, required: "true" })),
+    el("div", { class: "form-row" }, [
+      field("開始", el("input", { type: "time", name: "startTime", value: f.startTime, required: "true" })),
+      field("結束", el("input", { type: "time", name: "endTime", value: f.endTime, required: "true" })),
+    ]),
+    field("事由", el("textarea", { name: "reason", required: "true", placeholder: "例：處理客訴、月結" }, f.reason || "")),
+    el("div", { class: "btn-group" }, [
+      el("button", { type: "submit", class: "btn btn-primary" }, existing ? "更新" : "登記加班"),
+      existing ? el("button", { type: "button", class: "btn", onclick: () => { editingOvertimeId = null; render(); } }, "取消") : null,
+    ]),
+  ]);
+  return el("details", { class: "collapse", open: existing ? "" : null }, [
+    el("summary", {}, existing ? "✏️ 編輯加班" : "➕ 新增加班"),
+    el("div", { class: "content" }, formEl),
+  ]);
+}
+function overtimeSummary() {
+  const month = state.statsMonth;
+  const rows = state.data.overtime.filter(r => isDateInMonth(r.date, month));
+  const total = rows.reduce((s, r) => s + (Number(r.hours) || 0), 0);
+  const gqm = rows.filter(r => r.department === "GQM").reduce((s, r) => s + (Number(r.hours) || 0), 0);
+  const qre = rows.filter(r => r.department === "QRE").reduce((s, r) => s + (Number(r.hours) || 0), 0);
+  const byPerson = {};
+  rows.forEach(r => byPerson[r.person] = (byPerson[r.person] || 0) + (Number(r.hours) || 0));
+  const topPerson = Object.entries(byPerson).sort((a, b) => b[1] - a[1])[0];
+
+  return el("div", { class: "card" }, [
+    el("h3", {}, "本月加班統計"),
+    monthNav(() => render()),
+    el("div", { class: "grid grid-4" }, [
+      stat("總時數", total.toFixed(1)),
+      stat("GQM", gqm.toFixed(1)),
+      stat("QRE", qre.toFixed(1)),
+      stat("最多者", topPerson ? topPerson[0] : "-", topPerson ? topPerson[1].toFixed(1) + " 小時" : ""),
+    ]),
+  ]);
+}
+function overtimeList() {
+  const bar = el("div", { class: "filter-bar" }, [
+    el("select", { onchange: (e) => { overtimeFilter.dept = e.target.value; render(); } }, [
+      option("", "全部部門"),
+      option("GQM", "GQM", overtimeFilter.dept === "GQM"),
+      option("QRE", "QRE", overtimeFilter.dept === "QRE"),
+    ]),
+    el("select", { onchange: (e) => { overtimeFilter.person = e.target.value; render(); } }, [
+      option("", "全部人員"),
+      ...STAFF.filter(s => s.access === "all").map(s =>
+        option(s.name, s.name, overtimeFilter.person === s.name)),
+    ]),
+    el("button", { class: "btn btn-sm", onclick: () => {
+      const cols = [
+        { key: "date", label: "日期" },
+        { key: "person", label: "姓名" },
+        { key: "department", label: "部門" },
+        { key: "startTime", label: "開始" },
+        { key: "endTime", label: "結束" },
+        { key: "hours", label: "時數" },
+        { key: "reason", label: "事由" },
+      ];
+      download(`加班_${today()}.csv`, toCSV(state.data.overtime, cols));
+    } }, "匯出 CSV"),
+  ]);
+
+  const rows = state.data.overtime
+    .filter(r => !overtimeFilter.dept || r.department === overtimeFilter.dept)
+    .filter(r => !overtimeFilter.person || r.person === overtimeFilter.person)
+    .sort((a, b) => (a.date || "") < (b.date || "") ? 1 : -1);
+
+  return el("div", { class: "card" }, [
+    el("h3", {}, ["加班明細", el("span", { class: "count" }, rows.length)]),
+    bar,
+    el("div", { class: "list" },
+      rows.length ? rows.map(r => {
+        if (editingOvertimeId === r.id) return overtimeForm(r);
+        return el("div", { class: "list-item" }, [
+          el("div", { class: "main" }, [
+            el("div", { class: "title-line" }, [
+              r.person, "　", fmtDate(r.date), "　",
+              el("span", { style: "color:var(--text-2);font-weight:400;" },
+                `${r.startTime}-${r.endTime}（${Number(r.hours || 0).toFixed(1)}h）`),
+            ]),
+            r.reason ? el("div", { class: "meta" }, r.reason) : null,
+            el("div", { class: "meta-chips" }, [deptChip(r.department)]),
+          ]),
+          canEdit() ? el("div", { class: "actions" }, [
+            el("button", { class: "btn btn-sm", onclick: () => { editingOvertimeId = r.id; render(); } }, "改"),
+            canDeleteRecord(r) ? el("button", { class: "btn btn-sm btn-danger", onclick: async () => {
+              if (confirmDel()) await deleteDoc("overtime", r.id);
+            } }, "刪") : null,
+          ]) : null,
+        ]);
+      }) : [el("div", { class: "empty" }, "沒有紀錄")]
+    ),
+  ]);
+}
+
+// ============ 外出 ============
+let editingOutingId = null;
+let outingFilter = { dept: "", person: "" };
+
+function renderOutings(root) {
+  if (canEdit()) root.appendChild(outingForm());
+  root.appendChild(outingSummary());
+  root.appendChild(outingList());
+}
+function outingForm(existing) {
+  const f = existing || {
+    date: today(), startTime: "09:00", endTime: "12:00",
+    location: "", reason: "", returned: false,
+    person: state.user.name, department: state.user.dept,
+  };
+  const formEl = el("form", { class: "form", onsubmit: async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const data = Object.fromEntries(fd.entries());
+    if (data.startTime && data.endTime && data.startTime >= data.endTime) { toast("結束時間要在開始時間之後"); return; }
+    data.returned = fd.get("returned") === "on";
+    data.person = data.person || state.user.name;
+    data.department = staffByName(data.person)?.dept || state.user.dept;
+    if (existing) data.id = existing.id;
+    await saveDoc("outings", data);
+    e.target.reset();
+    if (existing) { editingOutingId = null; render(); }
+  } }, [
+    field("日期", el("input", { type: "date", name: "date", value: f.date, required: "true" })),
+    el("div", { class: "form-row" }, [
+      field("開始時間", el("input", { type: "time", name: "startTime", value: f.startTime, required: "true" })),
+      field("結束時間", el("input", { type: "time", name: "endTime", value: f.endTime, required: "true" })),
+    ]),
+    field("地點", el("input", { type: "text", name: "location", value: f.location || "", required: "true", placeholder: "例：客戶、三廠、供應商" })),
+    field("事由", el("textarea", { name: "reason", required: "true", placeholder: "例：客戶稽核、設備量測" }, f.reason || "")),
+    el("label", { style: "display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2);" }, [
+      el("input", { type: "checkbox", name: "returned", ...(f.returned ? { checked: "true" } : {}) }),
+      "已返回",
+    ]),
+    el("div", { class: "btn-group" }, [
+      el("button", { type: "submit", class: "btn btn-primary" }, existing ? "更新" : "登記外出"),
+      existing ? el("button", { type: "button", class: "btn", onclick: () => { editingOutingId = null; render(); } }, "取消") : null,
+    ]),
+  ]);
+  return el("details", { class: "collapse", open: existing ? "" : null }, [
+    el("summary", {}, existing ? "✏️ 編輯外出" : "➕ 新增外出"),
+    el("div", { class: "content" }, formEl),
+  ]);
+}
+function outingSummary() {
+  const month = state.statsMonth;
+  const rows = state.data.outings.filter(r => isDateInMonth(r.date, month));
+  const gqm = rows.filter(r => r.department === "GQM").length;
+  const qre = rows.filter(r => r.department === "QRE").length;
+  return el("div", { class: "card" }, [
+    el("h3", {}, "本月外出統計"),
+    monthNav(() => render()),
+    el("div", { class: "grid grid-4" }, [
+      stat("總次數", rows.length),
+      stat("GQM", gqm),
+      stat("QRE", qre),
+      stat("今日在外", state.data.outings.filter(r => r.date === today() && !r.returned).length),
+    ]),
+  ]);
+}
+function outingList() {
+  const bar = el("div", { class: "filter-bar" }, [
+    el("select", { onchange: (e) => { outingFilter.dept = e.target.value; render(); } }, [
+      option("", "全部部門"),
+      option("GQM", "GQM", outingFilter.dept === "GQM"),
+      option("QRE", "QRE", outingFilter.dept === "QRE"),
+    ]),
+    el("select", { onchange: (e) => { outingFilter.person = e.target.value; render(); } }, [
+      option("", "全部人員"),
+      ...STAFF.filter(s => s.access === "all").map(s => option(s.name, s.name, outingFilter.person === s.name)),
+    ]),
+    el("button", { class: "btn btn-sm", onclick: () => {
+      const cols = [
+        { key: "date", label: "日期" },
+        { key: "person", label: "姓名" },
+        { key: "department", label: "部門" },
+        { key: "startTime", label: "開始" },
+        { key: "endTime", label: "結束" },
+        { key: "location", label: "地點" },
+        { key: "reason", label: "事由" },
+        { key: "returned", label: "已返回", get: r => r.returned ? "是" : "否" },
+      ];
+      download(`外出_${today()}.csv`, toCSV(state.data.outings, cols));
+    } }, "匯出 CSV"),
+  ]);
+  const rows = state.data.outings
+    .filter(r => !outingFilter.dept || r.department === outingFilter.dept)
+    .filter(r => !outingFilter.person || r.person === outingFilter.person)
+    .sort((a, b) => (a.date || "") < (b.date || "") ? 1 : -1);
+
+  return el("div", { class: "card" }, [
+    el("h3", {}, ["外出明細", el("span", { class: "count" }, rows.length)]),
+    bar,
+    el("div", { class: "list" }, rows.length ? rows.map(r => {
+      if (editingOutingId === r.id) return outingForm(r);
+      return el("div", { class: "list-item" }, [
+        el("div", { class: "main" }, [
+          el("div", { class: "title-line" }, [
+            r.person, "　", fmtDate(r.date), "　",
+            el("span", { style: "color:var(--text-2);font-weight:400;" },
+              `${r.startTime || ""}${r.endTime ? "-" + r.endTime : ""}`),
+          ]),
+          el("div", { class: "meta" }, [
+            r.location ? "📍 " + r.location : "",
+            r.reason ? (r.location ? "・" : "") + r.reason : "",
+          ].filter(Boolean).join("")),
+          el("div", { class: "meta-chips" }, [
+            deptChip(r.department),
+            r.returned ? el("span", { class: "chip chip-completed" }, "已返回") : el("span", { class: "chip chip-inprogress" }, "在外"),
+          ]),
+        ]),
+        canEdit() ? el("div", { class: "actions" }, [
+          el("button", { class: "btn btn-sm", onclick: () => { editingOutingId = r.id; render(); } }, "改"),
+          canDeleteRecord(r) ? el("button", { class: "btn btn-sm btn-danger", onclick: async () => {
+            if (confirmDel()) await deleteDoc("outings", r.id);
+          } }, "刪") : null,
+        ]) : null,
+      ]);
+    }) : [el("div", { class: "empty" }, "沒有紀錄")]),
+  ]);
+}
+
+// ============ 費用 ============
+let editingExpenseId = null;
+let expenseFilter = { dept: "", person: "", category: "" };
+
+function renderExpenses(root) {
+  if (canEdit()) root.appendChild(expenseForm());
+  root.appendChild(expenseSummary());
+  root.appendChild(expenseList());
+}
+function expenseForm(existing) {
+  const defaultDept = state.user.dept === "QRE" ? "QRE" : "GQM";
+  const availableCats = EXPENSE_CATEGORIES[defaultDept] || EXPENSE_CATEGORIES.GQM;
+  const f = existing || {
+    date: today(), category: availableCats[0], amount: "", reason: "",
+    person: state.user.name, department: defaultDept,
+  };
+  const formEl = el("form", { class: "form", onsubmit: async (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+    data.amount = parseInt(data.amount, 10) || 0;
+    const staff = staffByName(data.person);
+    data.department = staff?.dept || state.user.dept;
+    if (existing) data.id = existing.id;
+    await saveDoc("expenses", data);
+    e.target.reset();
+    if (existing) { editingExpenseId = null; render(); }
+  } }, [
+    field("日期", el("input", { type: "date", name: "date", value: f.date, required: "true" })),
+    field("費用科目", el("select", { name: "category", required: "true" },
+      availableCats.map(c => option(c, c, f.category === c))
+    )),
+    field("金額（整數，大於 0）", el("input", { type: "number", name: "amount", value: f.amount, step: "1", min: "1", required: "true", placeholder: "例：1500" })),
+    field("事由", el("textarea", { name: "reason", required: "true", placeholder: "例：樣品運費、設備修繕" }, f.reason || "")),
+    el("div", { class: "btn-group" }, [
+      el("button", { type: "submit", class: "btn btn-primary" }, existing ? "更新" : "登記費用"),
+      existing ? el("button", { type: "button", class: "btn", onclick: () => { editingExpenseId = null; render(); } }, "取消") : null,
+    ]),
+  ]);
+  return el("details", { class: "collapse", open: existing ? "" : null }, [
+    el("summary", {}, existing ? "✏️ 編輯費用" : "➕ 新增費用"),
+    el("div", { class: "content" }, formEl),
+  ]);
+}
+function updateCategoryOptions(e) {
+  const person = e.target.value;
+  const dept = staffByName(person)?.dept;
+  const cats = EXPENSE_CATEGORIES[dept] || [];
+  const sel = document.getElementById("expense-category-select");
+  if (!sel) return;
+  sel.innerHTML = "";
+  cats.forEach(c => sel.appendChild(option(c, c)));
+}
+function expenseSummary() {
+  const month = state.statsMonth;
+  const rows = state.data.expenses.filter(r => isDateInMonth(r.date, month));
+  const sum = (filter) => rows.filter(filter).reduce((s, r) => s + (Number(r.amount) || 0), 0);
+  return el("div", { class: "card" }, [
+    el("h3", {}, "本月費用統計"),
+    monthNav(() => render()),
+    el("div", { class: "grid grid-3" }, [
+      stat("GQM・管—運費", "$" + sum(r => r.category === "管—運費").toLocaleString()),
+      stat("QRE・管—修繕費", "$" + sum(r => r.category === "管—修繕費").toLocaleString()),
+      stat("QRE・管—其他費用", "$" + sum(r => r.category === "管—其他費用").toLocaleString()),
+    ]),
+  ]);
+}
+function expenseList() {
+  const bar = el("div", { class: "filter-bar" }, [
+    el("select", { onchange: (e) => { expenseFilter.dept = e.target.value; render(); } }, [
+      option("", "全部部門"),
+      option("GQM", "GQM", expenseFilter.dept === "GQM"),
+      option("QRE", "QRE", expenseFilter.dept === "QRE"),
+    ]),
+    el("select", { onchange: (e) => { expenseFilter.category = e.target.value; render(); } }, [
+      option("", "全部科目"),
+      ...["管—運費", "管—修繕費", "管—其他費用"].map(c => option(c, c, expenseFilter.category === c)),
+    ]),
+    el("select", { onchange: (e) => { expenseFilter.person = e.target.value; render(); } }, [
+      option("", "全部人員"),
+      ...STAFF.filter(s => s.access === "all").map(s => option(s.name, s.name, expenseFilter.person === s.name)),
+    ]),
+    el("button", { class: "btn btn-sm", onclick: () => {
+      const cols = [
+        { key: "date", label: "日期" },
+        { key: "department", label: "部門" },
+        { key: "category", label: "科目" },
+        { key: "amount", label: "金額" },
+        { key: "person", label: "登記人" },
+        { key: "reason", label: "事由" },
+      ];
+      download(`費用_${today()}.csv`, toCSV(state.data.expenses, cols));
+    } }, "匯出 CSV"),
+  ]);
+  const rows = state.data.expenses
+    .filter(r => !expenseFilter.dept || r.department === expenseFilter.dept)
+    .filter(r => !expenseFilter.person || r.person === expenseFilter.person)
+    .filter(r => !expenseFilter.category || r.category === expenseFilter.category)
+    .sort((a, b) => (a.date || "") < (b.date || "") ? 1 : -1);
+
+  return el("div", { class: "card" }, [
+    el("h3", {}, ["費用明細", el("span", { class: "count" }, rows.length)]),
+    bar,
+    el("div", { class: "list" }, rows.length ? rows.map(r => {
+      if (editingExpenseId === r.id) return expenseForm(r);
+      return el("div", { class: "list-item" }, [
+        el("div", { class: "main" }, [
+          el("div", { class: "title-line" }, [
+            fmtDate(r.date), "　", r.category, "　",
+            el("span", { style: "color:var(--primary);font-weight:700;" }, "$" + Number(r.amount || 0).toLocaleString()),
+          ]),
+          el("div", { class: "meta" }, [
+            r.person,
+            r.reason ? "・" + r.reason : "",
+          ].filter(Boolean).join("")),
+          el("div", { class: "meta-chips" }, [deptChip(r.department)]),
+        ]),
+        canEdit() ? el("div", { class: "actions" }, [
+          el("button", { class: "btn btn-sm", onclick: () => { editingExpenseId = r.id; render(); } }, "改"),
+          canDeleteRecord(r) ? el("button", { class: "btn btn-sm btn-danger", onclick: async () => {
+            if (confirmDel()) await deleteDoc("expenses", r.id);
+          } }, "刪") : null,
+        ]) : null,
+      ]);
+    }) : [el("div", { class: "empty" }, "沒有紀錄")]),
+  ]);
+}
+
+// ============ 事項追蹤 ============
+let editingTaskId = null;
+let taskFilter = { dept: "", person: "", status: "" };
+
+function renderTasks(root) {
+  if (canEdit()) root.appendChild(taskForm());
+  root.appendChild(taskList());
+}
+function taskForm(existing) {
+  const f = existing || {
+    title: "", person: state.user.name, department: state.user.dept,
+    startDate: today(), dueDate: "", status: "pending", notes: "",
+  };
+  const formEl = el("form", { class: "form", onsubmit: async (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+    if (data.dueDate && data.startDate && data.dueDate < data.startDate) { toast("到期日要在開始日之後"); return; }
+    data.department = staffByName(data.person)?.dept || state.user.dept;
+    data.lastTouched = new Date().toISOString();
+    if (existing) {
+      data.id = existing.id;
+      if (existing.createdBy) data.createdBy = existing.createdBy;
+      if (existing.createdAt) data.createdAt = existing.createdAt;
+    }
+    await saveDoc("tasks", data);
+    e.target.reset();
+    if (existing) { editingTaskId = null; render(); }
+  } }, [
+    field("事項", el("input", { type: "text", name: "title", value: f.title || "", required: "true", placeholder: "例：7月度客訴分析報告" })),
+    el("div", { class: "form-row" }, [
+      field("負責人", el("select", { name: "person", required: "true" },
+        STAFF.filter(s => s.access === "all").map(s =>
+          option(s.name, `${s.name}（${s.dept}）`, f.person === s.name))
+      )),
+      field("狀態", el("select", { name: "status", required: "true" },
+        TASK_STATUS.map(s => option(s.k, s.label, f.status === s.k))
+      )),
+    ]),
+    el("div", { class: "form-row" }, [
+      field("開始日", el("input", { type: "date", name: "startDate", value: f.startDate || "", required: "true" })),
+      field("到期日（選填）", el("input", { type: "date", name: "dueDate", value: f.dueDate || "" })),
+    ]),
+    field("備註", el("textarea", { name: "notes", placeholder: "進度、要點，可留空" }, f.notes || "")),
+    el("div", { class: "btn-group" }, [
+      el("button", { type: "submit", class: "btn btn-primary" }, existing ? "更新" : "新增事項"),
+      existing ? el("button", { type: "button", class: "btn", onclick: () => { editingTaskId = null; render(); } }, "取消") : null,
+    ]),
+    el("div", { style: "font-size:11px;color:var(--text-3);margin-top:4px;" },
+      "交辦人會自動記為「" + state.user.name + "」。沒壓到期日的事項，5 天沒更新就會在看板跳提醒。"),
+  ]);
+  return el("details", { class: "collapse", open: existing ? "" : null }, [
+    el("summary", {}, existing ? "✏️ 編輯事項" : "➕ 新增事項"),
+    el("div", { class: "content" }, formEl),
+  ]);
+}
+
+// 事項「追進度」：自製小彈窗輸入（Artifact 沙箱擋 prompt）
+function bumpTask(r) {
+  // 若已有彈窗先清掉
+  const old = document.getElementById("bump-overlay");
+  if (old) old.remove();
+
+  const overlay = el("div", {
+    id: "bump-overlay",
+    class: "identity-overlay",
+    onclick: (e) => { if (e.target === overlay) overlay.remove(); },
+  });
+  const ta = el("textarea", {
+    style: "width:100%;min-height:80px;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-family:inherit;font-size:13px;",
+    placeholder: "寫一句進度（可留空，只重設追蹤時間）",
+  });
+  const save = async () => {
+    const note = ta.value.trim();
+    const stamp = new Date().toISOString().slice(0, 10);
+    let newNotes = r.notes || "";
+    if (note) {
+      newNotes = `[${stamp} ${state.user.name}] ${note}` + (newNotes ? "\n" + newNotes : "");
+    }
+    overlay.remove();
+    await saveDoc("tasks", {
+      ...r,
+      notes: newNotes,
+      lastTouched: new Date().toISOString(),
+    });
+  };
+  const box = el("div", { class: "identity-box", style: "max-width:460px;" }, [
+    el("h2", { style: "font-size:16px;margin-bottom:6px;" }, "追進度：" + (r.title || "")),
+    el("p", { style: "font-size:12px;" }, "送出後會重設上次更新時間；若有填內容會附加到備註前面。"),
+    ta,
+    el("div", { style: "display:flex;gap:8px;justify-content:flex-end;margin-top:12px;" }, [
+      el("button", { class: "btn", onclick: () => overlay.remove() }, "取消"),
+      el("button", { class: "btn btn-primary", onclick: save }, "送出"),
+    ]),
+  ]);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  setTimeout(() => ta.focus(), 50);
+}
+
+// 事項狀態判斷：回傳 { kind, label, cls } 或 null
+function taskReminder(r) {
+  if (r.status === "completed") return null;
+  const t = today();
+  if (r.dueDate) {
+    if (r.dueDate < t) return { kind: "overdue", label: "逾期", cls: "chip-overdue" };
+    const diff = (new Date(r.dueDate) - new Date(t)) / 86400000;
+    if (diff <= 7) return { kind: "due-soon", label: "本週到期", cls: "chip-adhoc" };
+    return null;
+  }
+  // 沒壓到期日 → 看 5 天週期
+  const last = r.lastTouched || r.createdAt;
+  if (!last) return null;
+  const days = (Date.now() - new Date(last).getTime()) / 86400000;
+  if (days >= 5) return { kind: "follow-up", label: "該追了", cls: "chip-adhoc" };
+  return null;
+}
+function daysAgo(iso) {
+  if (!iso) return null;
+  const d = (Date.now() - new Date(iso).getTime()) / 86400000;
+  if (d < 1) return "今天";
+  return Math.floor(d) + " 天前";
+}
+function taskList() {
+  const bar = el("div", { class: "filter-bar" }, [
+    el("select", { onchange: (e) => { taskFilter.dept = e.target.value; render(); } }, [
+      option("", "全部部門"),
+      option("GQM", "GQM", taskFilter.dept === "GQM"),
+      option("QRE", "QRE", taskFilter.dept === "QRE"),
+    ]),
+    el("select", { onchange: (e) => { taskFilter.person = e.target.value; render(); } }, [
+      option("", "全部負責人"),
+      ...STAFF.filter(s => s.access === "all").map(s => option(s.name, s.name, taskFilter.person === s.name)),
+    ]),
+    el("select", { onchange: (e) => { taskFilter.status = e.target.value; render(); } }, [
+      option("", "全部狀態"),
+      ...TASK_STATUS.map(s => option(s.k, s.label, taskFilter.status === s.k)),
+    ]),
+    el("button", { class: "btn btn-sm", onclick: () => {
+      const cols = [
+        { key: "title", label: "事項" },
+        { key: "person", label: "負責人" },
+        { key: "createdBy", label: "交辦人" },
+        { key: "department", label: "部門" },
+        { key: "startDate", label: "開始日" },
+        { key: "dueDate", label: "到期日" },
+        { key: "status", label: "狀態", get: r => (TASK_STATUS.find(s => s.k === r.status) || {}).label || r.status },
+        { key: "lastTouched", label: "最近更新", get: r => (r.lastTouched || r.createdAt || "").slice(0, 10) },
+        { key: "notes", label: "備註" },
+      ];
+      download(`事項_${today()}.csv`, toCSV(state.data.tasks, cols));
+    } }, "匯出 CSV"),
+  ]);
+  const t = today();
+  const rows = state.data.tasks
+    .filter(r => !taskFilter.dept || r.department === taskFilter.dept)
+    .filter(r => !taskFilter.person || r.person === taskFilter.person)
+    .filter(r => !taskFilter.status || r.status === taskFilter.status)
+    .sort((a, b) => {
+      if ((a.status === "completed") !== (b.status === "completed")) {
+        return a.status === "completed" ? 1 : -1;
+      }
+      return (a.dueDate || "9999") > (b.dueDate || "9999") ? 1 : -1;
+    });
+
+  return el("div", { class: "card" }, [
+    el("h3", {}, ["事項清單", el("span", { class: "count" }, rows.length)]),
+    bar,
+    el("div", { class: "list" }, rows.length ? rows.map(r => {
+      if (editingTaskId === r.id) return taskForm(r);
+      const status = TASK_STATUS.find(s => s.k === r.status) || TASK_STATUS[0];
+      const reminder = taskReminder(r);
+      const touched = r.lastTouched || r.createdAt;
+      return el("div", { class: "list-item" }, [
+        el("div", { class: "main" }, [
+          el("div", { class: "title-line" }, r.title || "(未命名)"),
+          el("div", { class: "meta" }, [
+            "負責：" + r.person,
+            r.createdBy && r.createdBy !== r.person ? "・交辦：" + r.createdBy : "",
+            r.dueDate ? "・到期 " + fmtDate(r.dueDate) : "・無壓期",
+            touched ? "・上次更新 " + daysAgo(touched) : "",
+          ].filter(Boolean).join("")),
+          r.notes ? el("div", { class: "meta", style: "white-space:pre-wrap;" }, r.notes) : null,
+          el("div", { class: "meta-chips" }, [
+            deptChip(r.department),
+            el("span", { class: "chip " + status.cls }, status.label),
+            reminder ? el("span", { class: "chip " + reminder.cls }, reminder.label) : null,
+          ]),
+        ]),
+        canEdit() ? el("div", { class: "actions" }, [
+          r.status !== "completed" ? el("button", { class: "btn btn-sm", onclick: () => bumpTask(r), title: "追進度 / 重設追蹤時間" }, "追") : null,
+          canEditTask(r) ? el("button", { class: "btn btn-sm", onclick: () => { editingTaskId = r.id; render(); }, title: "只有負責人或交辦人能改" }, "改") : null,
+          canDeleteRecord(r) ? el("button", { class: "btn btn-sm btn-danger", onclick: async () => {
+            if (confirmDel()) await deleteDoc("tasks", r.id);
+          } }, "刪") : null,
+        ]) : null,
+      ]);
+    }) : [el("div", { class: "empty" }, "沒有紀錄")]),
+  ]);
+}
+
+// ============ 表單 helpers ============
+function field(label, input) {
+  return el("div", { class: "field" }, [
+    el("label", {}, label),
+    input,
+  ]);
+}
+function option(value, text, selected) {
+  const attrs = { value };
+  if (selected) attrs.selected = "true";
+  return el("option", attrs, text);
+}
+
+// ============ 啟動 ============
+(async function () {
+  loadUser();
+  render();
+  await initDb();
+  render();
+})();
+</script>
+</body>
+</html>
