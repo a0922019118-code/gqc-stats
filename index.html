@@ -793,10 +793,58 @@ function canDeleteRecord(r) {
   if (!canEdit()) return false;
   return r.createdBy === state.user.name;
 }
-// 事項的「改」只允許負責人或交辦人
+// ====== 多人事項 helpers ======
+function taskAssignees(r) {
+  if (Array.isArray(r.persons) && r.persons.length) return r.persons;
+  if (r.person) return [r.person];
+  return [];
+}
+function taskCompletedBy(r) {
+  return Array.isArray(r.completedBy) ? r.completedBy : [];
+}
+function isMyTask(r) {
+  return taskAssignees(r).includes(state.user.name);
+}
+function isCompletedByMe(r) {
+  return taskCompletedBy(r).includes(state.user.name);
+}
+function taskProgress(r) {
+  const assignees = taskAssignees(r);
+  const total = assignees.length;
+  if (!total) return { total: 0, done: 0 };
+  if (r.status === "completed") return { total, done: total };
+  const done = taskCompletedBy(r).filter(n => assignees.includes(n)).length;
+  return { total, done };
+}
+// 事項的「改」只允許負責人之一或交辦人
 function canEditTask(r) {
   if (!canEdit()) return false;
-  return r.person === state.user.name || r.createdBy === state.user.name;
+  return isMyTask(r) || r.createdBy === state.user.name;
+}
+// 我標記自己做完了
+async function markMyDone(r) {
+  const name = state.user.name;
+  const completedBy = [...taskCompletedBy(r)];
+  if (!completedBy.includes(name)) completedBy.push(name);
+  const assignees = taskAssignees(r);
+  const allDone = assignees.every(a => completedBy.includes(a));
+  await saveDoc("tasks", {
+    ...r,
+    completedBy,
+    lastTouched: new Date().toISOString(),
+    status: allDone ? "completed" : r.status,
+  });
+}
+// 取消「我做完了」
+async function unmarkMyDone(r) {
+  const name = state.user.name;
+  const completedBy = taskCompletedBy(r).filter(n => n !== name);
+  await saveDoc("tasks", {
+    ...r,
+    completedBy,
+    lastTouched: new Date().toISOString(),
+    status: r.status === "completed" ? "inprogress" : r.status,
+  });
 }
 
 // ============ 看板 ============
@@ -892,9 +940,9 @@ function renderDashboard(root) {
       const order = { "overdue": 0, "due-soon": 1, "follow-up": 2 };
       return (order[ra] ?? 9) - (order[rb] ?? 9);
     });
-  // 我負責的（未完成、且未在上面列表）
+  // 我負責的（未完成、且我還沒標記完成）
   const myOwn = state.data.tasks
-    .filter(r => r.status !== "completed" && r.person === state.user.name)
+    .filter(r => r.status !== "completed" && isMyTask(r) && !isCompletedByMe(r))
     .sort((a, b) => (a.dueDate || "9999") > (b.dueDate || "9999") ? 1 : -1)
     .slice(0, 8);
 
@@ -1000,11 +1048,17 @@ function taskItemSmall(r) {
   const status = TASK_STATUS.find(s => s.k === r.status) || TASK_STATUS[0];
   const reminder = taskReminder(r);
   const touched = r.lastTouched || r.createdAt;
+  const assignees = taskAssignees(r);
+  const prog = taskProgress(r);
+  const isMulti = assignees.length > 1;
+  const personLine = isMulti
+    ? `負責：${assignees.length} 人（${prog.done}/${prog.total}）`
+    : "負責：" + (assignees[0] || "");
   return el("div", { class: "list-item" }, [
     el("div", { class: "main" }, [
       el("div", { class: "title-line" }, r.title || "(未命名)"),
       el("div", { class: "meta" }, [
-        "負責：" + (r.person || ""),
+        personLine,
         r.dueDate ? "・到期 " + fmtDate(r.dueDate) : "・無壓期",
         touched ? "・更新 " + daysAgo(touched) : "",
       ].filter(Boolean).join("")),
@@ -1015,6 +1069,8 @@ function taskItemSmall(r) {
       ]),
     ]),
     canEdit() && r.status !== "completed" ? el("div", { class: "actions" }, [
+      (isMyTask(r) && !isCompletedByMe(r))
+        ? el("button", { class: "btn btn-sm btn-primary", onclick: () => markMyDone(r), title: "我做完了" }, "✅") : null,
       el("button", { class: "btn btn-sm", onclick: () => bumpTask(r), title: "追進度" }, "追"),
     ]) : null,
   ]);
@@ -1629,35 +1685,84 @@ function renderTasks(root) {
   root.appendChild(taskList());
 }
 function taskForm(existing) {
+  const defaultPersons = existing ? taskAssignees(existing) : [state.user.name];
   const f = existing || {
-    title: "", person: state.user.name, department: state.user.dept,
+    title: "", department: state.user.dept,
     startDate: today(), dueDate: "", status: "pending", notes: "",
   };
+
+  const teamMembers = STAFF.filter(s => s.access === "all");
+
+  // 複選 checkbox 區塊
+  const chkWrap = el("div", { id: "task-persons-wrap", style: "display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;padding:8px;background:var(--surface-2);border-radius:var(--radius-sm);" });
+  teamMembers.forEach(s => {
+    const chk = el("label", {
+      style: "display:flex;align-items:center;gap:4px;font-size:13px;padding:4px 8px;background:var(--surface);border-radius:4px;cursor:pointer;"
+    }, [
+      el("input", {
+        type: "checkbox",
+        name: "persons",
+        value: s.name,
+        ...(defaultPersons.includes(s.name) ? { checked: "true" } : {}),
+      }),
+      s.name,
+      el("span", { style: "font-size:11px;color:var(--text-3);" }, `（${s.dept}）`),
+    ]);
+    chkWrap.appendChild(chk);
+  });
+
+  const setAssignees = (names) => {
+    chkWrap.querySelectorAll('input[name="persons"]').forEach(inp => {
+      inp.checked = names.includes(inp.value);
+    });
+  };
+  const quickBtn = (label, filterFn) => el("button", {
+    type: "button",
+    class: "btn btn-sm",
+    onclick: () => setAssignees(teamMembers.filter(filterFn).map(s => s.name)),
+  }, label);
+
   const formEl = el("form", { class: "form", onsubmit: async (e) => {
     e.preventDefault();
-    const data = Object.fromEntries(new FormData(e.target).entries());
+    const fd = new FormData(e.target);
+    const data = Object.fromEntries(fd.entries());
+    const persons = fd.getAll("persons");
+    if (persons.length === 0) { toast("請至少選一個負責人"); return; }
     if (data.dueDate && data.startDate && data.dueDate < data.startDate) { toast("到期日要在開始日之後"); return; }
-    data.department = staffByName(data.person)?.dept || state.user.dept;
+    // 部門
+    const depts = [...new Set(persons.map(n => staffByName(n)?.dept).filter(Boolean))];
+    data.department = depts.length === 1 ? depts[0] : "跨部門";
+    data.persons = persons;
+    data.person = persons[0]; // 相容舊欄位（看板/CSV 用）
     data.lastTouched = new Date().toISOString();
     if (existing) {
       data.id = existing.id;
       if (existing.createdBy) data.createdBy = existing.createdBy;
       if (existing.createdAt) data.createdAt = existing.createdAt;
+      // 保留已完成清單，但剔除不在 persons 中的
+      if (existing.completedBy) {
+        data.completedBy = existing.completedBy.filter(n => persons.includes(n));
+      }
     }
     await saveDoc("tasks", data);
     e.target.reset();
     if (existing) { editingTaskId = null; render(); }
   } }, [
-    field("事項", el("input", { type: "text", name: "title", value: f.title || "", required: "true", placeholder: "例：7月度客訴分析報告" })),
-    el("div", { class: "form-row" }, [
-      field("負責人", el("select", { name: "person", required: "true" },
-        STAFF.filter(s => s.access === "all").map(s =>
-          option(s.name, `${s.name}（${s.dept}）`, f.person === s.name))
-      )),
-      field("狀態", el("select", { name: "status", required: "true" },
-        TASK_STATUS.map(s => option(s.k, s.label, f.status === s.k))
-      )),
+    field("事項", el("input", { type: "text", name: "title", value: f.title || "", required: "true", placeholder: "例：員工滿意度調查" })),
+    el("div", { class: "field" }, [
+      el("label", {}, "負責人（可複選）"),
+      el("div", { style: "display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;" }, [
+        quickBtn("👥 全團隊", () => true),
+        quickBtn("GQM 全部", s => s.dept === "GQM"),
+        quickBtn("QRE 全部", s => s.dept === "QRE"),
+        el("button", { type: "button", class: "btn btn-sm", onclick: () => setAssignees([]) }, "清空"),
+        el("button", { type: "button", class: "btn btn-sm", onclick: () => setAssignees([state.user.name]) }, "僅自己"),
+      ]),
+      chkWrap,
     ]),
+    field("狀態", el("select", { name: "status", required: "true" },
+      TASK_STATUS.map(s => option(s.k, s.label, f.status === s.k))
+    )),
     el("div", { class: "form-row" }, [
       field("開始日", el("input", { type: "date", name: "startDate", value: f.startDate || "", required: "true" })),
       field("到期日（選填）", el("input", { type: "date", name: "dueDate", value: f.dueDate || "" })),
@@ -1667,8 +1772,8 @@ function taskForm(existing) {
       el("button", { type: "submit", class: "btn btn-primary" }, existing ? "更新" : "新增事項"),
       existing ? el("button", { type: "button", class: "btn", onclick: () => { editingTaskId = null; render(); } }, "取消") : null,
     ]),
-    el("div", { style: "font-size:11px;color:var(--text-3);margin-top:4px;" },
-      "交辦人會自動記為「" + state.user.name + "」。沒壓到期日的事項，5 天沒更新就會在看板跳提醒。"),
+    el("div", { style: "font-size:11px;color:var(--text-3);margin-top:4px;line-height:1.6;" },
+      "交辦人自動記為「" + state.user.name + "」。選多人時每個人可自行按「✅ 我做完了」計入進度，全員完成後事項自動結案。"),
   ]);
   return el("details", { class: "collapse", open: existing ? "" : null }, [
     el("summary", {}, existing ? "✏️ 編輯事項" : "➕ 新增事項"),
@@ -1760,7 +1865,12 @@ function taskList() {
     el("button", { class: "btn btn-sm", onclick: () => {
       const cols = [
         { key: "title", label: "事項" },
-        { key: "person", label: "負責人" },
+        { key: "persons", label: "負責人", get: r => taskAssignees(r).join("、") },
+        { key: "progress", label: "進度", get: r => {
+          const p = taskProgress(r);
+          return p.total > 1 ? `${p.done}/${p.total}` : (r.status === "completed" ? "完成" : "未完成");
+        } },
+        { key: "completedBy", label: "已完成者", get: r => taskCompletedBy(r).join("、") },
         { key: "createdBy", label: "交辦人" },
         { key: "department", label: "部門" },
         { key: "startDate", label: "開始日" },
@@ -1775,7 +1885,7 @@ function taskList() {
   const t = today();
   const rows = state.data.tasks
     .filter(r => !taskFilter.dept || r.department === taskFilter.dept)
-    .filter(r => !taskFilter.person || r.person === taskFilter.person)
+    .filter(r => !taskFilter.person || taskAssignees(r).includes(taskFilter.person))
     .filter(r => !taskFilter.status || r.status === taskFilter.status)
     .sort((a, b) => {
       if ((a.status === "completed") !== (b.status === "completed")) {
@@ -1792,15 +1902,32 @@ function taskList() {
       const status = TASK_STATUS.find(s => s.k === r.status) || TASK_STATUS[0];
       const reminder = taskReminder(r);
       const touched = r.lastTouched || r.createdAt;
+      const assignees = taskAssignees(r);
+      const prog = taskProgress(r);
+      const isMulti = assignees.length > 1;
+      const personLine = isMulti
+        ? `負責：${assignees.length} 人（${prog.done}/${prog.total} 完成）`
+        : "負責：" + (assignees[0] || "");
+      // 展開每人狀態
+      const perPersonList = isMulti ? el("div", { style: "display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;" },
+        assignees.map(n => {
+          const done = taskCompletedBy(r).includes(n) || r.status === "completed";
+          return el("span", {
+            class: "chip",
+            style: `font-size:11px;${done ? "background:var(--ok-soft);color:var(--ok);" : "background:var(--surface-2);color:var(--text-2);"}`,
+          }, (done ? "✓ " : "○ ") + n);
+        })
+      ) : null;
       return el("div", { class: "list-item" }, [
         el("div", { class: "main" }, [
           el("div", { class: "title-line" }, r.title || "(未命名)"),
           el("div", { class: "meta" }, [
-            "負責：" + r.person,
-            r.createdBy && r.createdBy !== r.person ? "・交辦：" + r.createdBy : "",
+            personLine,
+            r.createdBy && (!isMulti ? r.createdBy !== assignees[0] : true) ? "・交辦：" + r.createdBy : "",
             r.dueDate ? "・到期 " + fmtDate(r.dueDate) : "・無壓期",
             touched ? "・上次更新 " + daysAgo(touched) : "",
           ].filter(Boolean).join("")),
+          perPersonList,
           r.notes ? el("div", { class: "meta", style: "white-space:pre-wrap;" }, r.notes) : null,
           el("div", { class: "meta-chips" }, [
             deptChip(r.department),
@@ -1809,8 +1936,14 @@ function taskList() {
           ]),
         ]),
         canEdit() ? el("div", { class: "actions" }, [
+          // 我是負責人之一、尚未標記完成 → 「我做完了」
+          (isMyTask(r) && !isCompletedByMe(r) && r.status !== "completed")
+            ? el("button", { class: "btn btn-sm btn-primary", onclick: () => markMyDone(r), title: "標記自己已完成" }, "✅ 我做完了") : null,
+          // 我已標記但想取消
+          (isMyTask(r) && isCompletedByMe(r) && r.status !== "completed")
+            ? el("button", { class: "btn btn-sm", onclick: () => unmarkMyDone(r), title: "取消我的完成標記" }, "↺ 取消完成") : null,
           r.status !== "completed" ? el("button", { class: "btn btn-sm", onclick: () => bumpTask(r), title: "追進度 / 重設追蹤時間" }, "追") : null,
-          canEditTask(r) ? el("button", { class: "btn btn-sm", onclick: () => { editingTaskId = r.id; render(); }, title: "只有負責人或交辦人能改" }, "改") : null,
+          canEditTask(r) ? el("button", { class: "btn btn-sm", onclick: () => { editingTaskId = r.id; render(); }, title: "負責人或交辦人可改" }, "改") : null,
           canDeleteRecord(r) ? el("button", { class: "btn btn-sm btn-danger", onclick: async () => {
             if (confirmDel()) await deleteDoc("tasks", r.id);
           } }, "刪") : null,
