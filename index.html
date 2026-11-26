@@ -311,7 +311,7 @@ details.collapse .content {
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAtw6bSkMvfuv7aGjmluKdvCXkX3V1IE_c",
@@ -329,7 +329,38 @@ const fs = getFirestore(app);
 // 把 Firebase API 包成跟原本 Claude db capability 相容的介面
 window._fb = {
   auth, fs,
-  signInGoogle: () => signInWithPopup(auth, new GoogleAuthProvider()),
+  // 第一次登入：若該工號未註冊，自動用工號當密碼 createUser
+  async signInByEmpId(empId, password) {
+    const email = `${empId}@gqc.local`;
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      return { ok: true };
+    } catch (e) {
+      if (e.code === "auth/user-not-found" || e.code === "auth/invalid-credential" || e.code === "auth/invalid-login-credentials") {
+        // 嘗試建新帳號（只在密碼 == 工號 時）
+        if (password === empId) {
+          try {
+            await createUserWithEmailAndPassword(auth, email, empId);
+            return { ok: true, created: true };
+          } catch (e2) {
+            // 若 createUser 失敗（例如帳號其實存在但密碼錯），再試一次登入
+            try {
+              await signInWithEmailAndPassword(auth, email, password);
+              return { ok: true };
+            } catch (e3) {
+              return { ok: false, code: e3.code || e2.code, message: e3.message };
+            }
+          }
+        }
+        return { ok: false, code: e.code, message: "工號或密碼錯誤" };
+      }
+      return { ok: false, code: e.code, message: e.message };
+    }
+  },
+  async changePassword(newPassword) {
+    if (!auth.currentUser) throw new Error("未登入");
+    await updatePassword(auth.currentUser, newPassword);
+  },
   signOut: () => signOut(auth),
   onAuthChange: (cb) => onAuthStateChanged(auth, cb),
   collection(name) {
@@ -352,20 +383,25 @@ window.dispatchEvent(new Event("fb-ready"));
 <script>
 // ============ 常數 ============
 const STAFF = [
-  { name: "吳子朋", email: "second.wu@jarlly.com",    dept: "GQC", role: "協理", access: "all" },
-  { name: "黎家彤", email: "betty@jarlly.com",        dept: "GQM", role: "副理",  access: "all" },
-  { name: "梁文軒", email: "louis.leung@jarlly.com",  dept: "GQM", role: "同仁",  access: "all" },
-  { name: "劉怡廷", email: "rita.liu@jarlly.com",     dept: "GQM", role: "同仁",  access: "all" },
-  { name: "葉昱冠", email: "duncan.yeh@jarlly.com",   dept: "QRE", role: "同仁",  access: "all" },
-  { name: "林辰瑄", email: "chenhsuan.lin@jarlly.com",dept: "QRE", role: "同仁",  access: "all" },
-  { name: "蕭泳嘉", email: "rita.hsiao@jarlly.com",   dept: "QRE", role: "同仁",  access: "all" },
-  { name: "蔡宜助", email: "alex.tsai@jarlly.com",    dept: "QRE", role: "同仁",  access: "all" },
-  { name: "陳碧珠", email: "ivy@jarlly.com",          dept: "兼任", role: "助理", access: "leave-only" },
+  { empId: "102388", name: "吳子朋", dept: "GQC", role: "協理", access: "all" },
+  { empId: "100268", name: "黎家彤", dept: "GQM", role: "副理", access: "all" },
+  { empId: "102426", name: "梁文軒", dept: "GQM", role: "同仁", access: "all" },
+  { empId: "102785", name: "劉怡廷", dept: "GQM", role: "同仁", access: "all" },
+  { empId: "102555", name: "葉昱冠", dept: "QRE", role: "同仁", access: "all" },
+  { empId: "102773", name: "林辰瑄", dept: "QRE", role: "同仁", access: "all" },
+  { empId: "102810", name: "蕭泳嘉", dept: "QRE", role: "同仁", access: "all" },
+  { empId: "102911", name: "蔡宜助", dept: "QRE", role: "同仁", access: "all" },
+  { empId: "100834", name: "陳碧珠", dept: "兼任", role: "助理", access: "leave-only" },
 ];
-function staffByEmail(email) {
+const EMAIL_DOMAIN = "gqc.local"; // 僅 Firebase 內部用，非真實 email
+function staffByEmpId(id) {
+  if (!id) return null;
+  return STAFF.find(s => s.empId === String(id).trim());
+}
+function empIdToEmail(id) { return `${id}@${EMAIL_DOMAIN}`; }
+function emailToEmpId(email) {
   if (!email) return null;
-  const e = email.trim().toLowerCase();
-  return STAFF.find(s => s.email.toLowerCase() === e);
+  return email.split("@")[0];
 }
 
 const EXPENSE_CATEGORIES = {
@@ -485,7 +521,8 @@ async function initDb() {
       render();
       return;
     }
-    const matched = staffByEmail(user.email);
+    const empId = emailToEmpId(user.email);
+    const matched = staffByEmpId(empId);
     if (!matched) {
       state.user = null;
       state.unauthorizedEmail = user.email;
@@ -572,19 +609,28 @@ function download(name, content, mime = "text/csv;charset=utf-8") {
   toast("已下載 " + name);
 }
 
-// ============ 使用者識別 (Google 登入) ============
-async function signInGoogle() {
-  try {
-    await window._fb.signInGoogle();
-  } catch (e) {
-    toast("登入失敗：" + (e.message || e.code || ""));
-  }
-}
+// ============ 使用者識別（工號+密碼） ============
 async function signOutUser() {
-  try {
-    await window._fb.signOut();
-  } catch (e) {}
+  try { await window._fb.signOut(); } catch (e) {}
 }
+async function doLogin(empId, password) {
+  empId = (empId || "").trim();
+  password = (password || "").trim();
+  const staff = staffByEmpId(empId);
+  if (!staff) { toast("工號不在名單內"); return; }
+  if (password.length < 6) {
+    // Firebase 密碼至少 6 碼；若預設工號是 6 碼以上，第一次用工號當密碼 OK
+    toast("密碼至少 6 碼");
+    return;
+  }
+  const res = await window._fb.signInByEmpId(empId, password);
+  if (!res.ok) {
+    toast(res.message || "登入失敗");
+    return;
+  }
+  if (res.created) toast(`首次登入：已建立帳號（密碼=工號）`);
+}
+
 function renderIdentityPicker() {
   const app = $("#app");
   app.innerHTML = "";
@@ -592,27 +638,92 @@ function renderIdentityPicker() {
   content.push(el("h2", {}, "品質中心 日常統計"));
 
   if (state.unauthorizedEmail) {
+    const empId = emailToEmpId(state.unauthorizedEmail);
     content.push(el("p", { style: "color:var(--danger);" },
-      `你的帳號 ${state.unauthorizedEmail} 不在名單內。`));
-    content.push(el("p", { style: "font-size:12px;color:var(--text-2);" },
-      "請用公司 email（@jarlly.com）登入，或聯絡 Betty 把你加入名單。"));
+      `工號 ${empId} 不在名單內`));
     content.push(el("div", { style: "display:flex;gap:8px;margin-top:12px;" }, [
-      el("button", { class: "btn", onclick: signOutUser }, "登出，重新選擇帳號"),
+      el("button", { class: "btn", onclick: signOutUser }, "重新登入"),
     ]));
   } else {
-    content.push(el("p", {}, "請用你的公司 Google 帳號（@jarlly.com）登入："));
-    content.push(el("button", {
-      class: "btn btn-primary",
-      style: "width:100%;padding:12px;font-size:14px;margin-top:8px;",
-      onclick: signInGoogle,
-    }, "🔐 用 Google 登入"));
-    content.push(el("p", { style: "font-size:11px;color:var(--text-3);margin-top:12px;" },
-      "系統會依你的 Google email 自動辨識身分，不能登記成別人。"));
+    content.push(el("p", {}, "請輸入工號登入（初次登入密碼 = 工號）："));
+    const form = el("form", {
+      style: "display:flex;flex-direction:column;gap:10px;margin-top:8px;",
+      onsubmit: (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        doLogin(fd.get("empId"), fd.get("password"));
+      },
+    }, [
+      el("input", {
+        type: "text",
+        name: "empId",
+        placeholder: "工號",
+        required: "true",
+        inputmode: "numeric",
+        pattern: "[0-9]*",
+        style: "padding:10px;border:1px solid var(--border);border-radius:6px;font-size:14px;",
+      }),
+      el("input", {
+        type: "password",
+        name: "password",
+        placeholder: "密碼（首次 = 工號）",
+        required: "true",
+        minlength: "6",
+        style: "padding:10px;border:1px solid var(--border);border-radius:6px;font-size:14px;",
+      }),
+      el("button", {
+        type: "submit",
+        class: "btn btn-primary",
+        style: "padding:10px;font-size:14px;",
+      }, "登入"),
+    ]);
+    content.push(form);
+    content.push(el("p", { style: "font-size:11px;color:var(--text-3);margin-top:12px;line-height:1.6;" },
+      "初次登入系統會自動建立你的帳號（密碼預設 = 工號）。登入後可自行到右上角「改密碼」更換。忘記密碼請找 Betty 重設。"));
   }
 
   const box = el("div", { class: "identity-box" }, content);
   const overlay = el("div", { class: "identity-overlay" }, box);
   app.appendChild(overlay);
+}
+
+// 改密碼對話框
+function openChangePassword() {
+  const old = document.getElementById("pwd-overlay");
+  if (old) old.remove();
+  const overlay = el("div", { id: "pwd-overlay", class: "identity-overlay",
+    onclick: (e) => { if (e.target === overlay) overlay.remove(); } });
+  const pw1 = el("input", { type: "password", placeholder: "新密碼（至少 6 碼）", minlength: "6",
+    style: "padding:10px;border:1px solid var(--border);border-radius:6px;font-size:14px;width:100%;" });
+  const pw2 = el("input", { type: "password", placeholder: "再輸入一次", minlength: "6",
+    style: "padding:10px;border:1px solid var(--border);border-radius:6px;font-size:14px;width:100%;margin-top:8px;" });
+  const save = async () => {
+    const a = pw1.value.trim(), b = pw2.value.trim();
+    if (a.length < 6) { toast("密碼至少 6 碼"); return; }
+    if (a !== b) { toast("兩次密碼不一致"); return; }
+    try {
+      await window._fb.changePassword(a);
+      overlay.remove();
+      toast("已更新密碼");
+    } catch (e) {
+      if (e.code === "auth/requires-recent-login") {
+        toast("因安全性考量請重新登入後再改");
+      } else {
+        toast("更新失敗：" + (e.message || e.code));
+      }
+    }
+  };
+  const box = el("div", { class: "identity-box", style: "max-width:400px;" }, [
+    el("h2", { style: "font-size:16px;margin-bottom:8px;" }, "改密碼"),
+    pw1, pw2,
+    el("div", { style: "display:flex;gap:8px;justify-content:flex-end;margin-top:12px;" }, [
+      el("button", { class: "btn", onclick: () => overlay.remove() }, "取消"),
+      el("button", { class: "btn btn-primary", onclick: save }, "儲存"),
+    ]),
+  ]);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  setTimeout(() => pw1.focus(), 50);
 }
 
 // ============ 主渲染 ============
@@ -629,6 +740,7 @@ function render() {
     ]),
     el("div", { class: "user-badge" }, [
       el("span", {}, `${state.user.name}（${state.user.dept}・${state.user.role}）`),
+      el("button", { onclick: openChangePassword, title: "改密碼", style: "margin-left:8px;" }, "改密碼"),
       el("button", { onclick: signOutUser, title: "登出" }, "登出"),
     ]),
   ]);
